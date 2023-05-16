@@ -1,11 +1,12 @@
-package fetcher
+package websites
 
 import (
 	"github.com/PuerkitoBio/goquery"
 	"strconv"
 	"strings"
+	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
-	"sweetRevenge/web"
+	"sweetRevenge/websites/web"
 	"time"
 )
 
@@ -14,15 +15,20 @@ const baseUrl = "https://999.md"
 // TODO: fetch other sections too
 const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
 
-func GetLadies() (ladies []dto.Lady) {
+func UpdateLadies() {
+	ladies := getLadies()
+	dao.SaveNewLadies(ladies)
+}
+
+func getLadies() (ladies []dto.Lady) {
 	var urls []string
 	currentUrl := ladiesUrl
 	pageNumber := 1
 	for {
 		page := web.Fetch(currentUrl, false) // start a goroutine
-		ladies, hasNextPage := parseLadiesList(page)
-		if len(ladies) > 0 {
-			urls = append(urls, ladies...)
+		ladyUrls, hasNextPage := parseLadiesList(page)
+		if len(ladyUrls) > 0 {
+			urls = append(urls, ladyUrls...)
 		}
 		//TODO: remove test condition, make 1 second pause
 		if !hasNextPage || true {

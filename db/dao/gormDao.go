@@ -29,7 +29,7 @@ func IsTableEmpty(obj any) bool {
 	return dao.db.Limit(1).Find(obj).RowsAffected == 0
 }
 
-func Select(obj any) any {
+func SelectAll(obj any) any {
 	rows, _ := dao.db.Find(obj).Rows()
 	return rows
 }

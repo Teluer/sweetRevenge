@@ -1,25 +1,44 @@
 package main
 
 import (
-	"sweetRevenge/fetcher"
+	"math/rand"
+	"sweetRevenge/websites"
+	"sweetRevenge/websites/target"
+	"time"
 )
 
 /*TODO:
-check data in DB: select least used phone and least used name
-if no luck with phones, go to 999 and update
-if no luck with names, go to names sources and update
-
 connect to TOR via Socks
 go to the shop and make an order
-
-set timer to sleep
 */
 
+var updateLadiesInterval = time.Hour * 4
+var sendOrdersBaseInterval = time.Hour * 1
+var sendOrdersIntervalVariation = sendOrdersBaseInterval / 2
+
 func main() {
-	fetcher.UpdateLastNames()
-	fetcher.UpdateFirstNames()
+	websites.UpdateLastNames()
+	websites.UpdateFirstNames()
+	//wait for the first update to complete, then start goroutine
+	websites.UpdateLadies()
+	go updateLadiesRoutine()
+	//everything ready, start sending orders
+	go sendOrdersRoutine()
 }
 
-func updateLadies() {
+func updateLadiesRoutine() {
+	for {
+		time.Sleep(updateLadiesInterval)
+		websites.UpdateLadies()
+	}
+}
 
+func sendOrdersRoutine() {
+	for {
+		target.OrderItem()
+
+		sleepDuration := time.Duration(float64(sendOrdersIntervalVariation) *
+			(rand.Float64() - 0.5))
+		time.Sleep(sleepDuration)
+	}
 }

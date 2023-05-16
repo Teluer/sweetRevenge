@@ -1,10 +1,10 @@
-package fetcher
+package websites
 
 import (
 	"github.com/PuerkitoBio/goquery"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
-	"sweetRevenge/web"
+	"sweetRevenge/websites/web"
 	"time"
 )
 
