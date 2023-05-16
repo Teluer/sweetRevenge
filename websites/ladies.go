@@ -14,6 +14,8 @@ const baseUrl = "https://999.md"
 
 // TODO: fetch other sections too
 const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
+const ladiesPageSleepTime = time.Second * 2
+const ladiesAdSleepTime = time.Second * 1
 
 func UpdateLadies() {
 	ladies := getLadies()
@@ -31,9 +33,10 @@ func getLadies() (ladies []dto.Lady) {
 			urls = append(urls, ladyUrls...)
 		}
 		//TODO: remove test condition, make 1 second pause
-		if !hasNextPage || true {
+		if !hasNextPage {
 			break
 		}
+		time.Sleep(ladiesPageSleepTime)
 		pageNumber++
 		currentUrl = ladiesUrl + "?page=" + strconv.Itoa(pageNumber)
 	}
@@ -42,7 +45,7 @@ func getLadies() (ladies []dto.Lady) {
 	for _, url := range urls {
 		url = baseUrl + url
 		ad := web.Fetch(url, false)
-
+		//time.Sleep(ladiesAdSleepTime)
 		ladies = append(ladies, getLady(ad))
 	}
 	return ladies

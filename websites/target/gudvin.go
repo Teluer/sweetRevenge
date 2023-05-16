@@ -71,7 +71,7 @@ func createRandomCustomer() (name string, phone string) {
 	const phoneWithSpaceIncidence = 0.5
 
 	//write phones in random formats
-	phone := dao.GetLeastUsedPhone()
+	phone = dao.GetLeastUsedPhone()
 	prefixIndex := rand.Intn(len(phonePrefixes))
 	if prefixIndex >= 4 && evaluateProbability(phoneWithSpaceIncidence) {
 		phone = phone[:2] + " " + phone[2:]
@@ -80,7 +80,7 @@ func createRandomCustomer() (name string, phone string) {
 	phone = prefix + phone
 
 	//names should look random as well
-	name := dao.GetLeastUsedFirstName()
+	name = dao.GetLeastUsedFirstName()
 	if !evaluateProbability(firstNameOnlyIncidence) {
 		if evaluateProbability(firstNameAfterLastNameIncidence) {
 			name = dao.GetLeastUsedLastName() + " " + name
