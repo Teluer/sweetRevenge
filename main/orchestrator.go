@@ -16,9 +16,10 @@ set timer to sleep
 */
 
 func main() {
-	//fetcher.GetLadiesPhones()
-	//db.Connect()
-
 	fetcher.UpdateLastNames()
 	fetcher.UpdateFirstNames()
+}
+
+func updateLadies() {
+
 }

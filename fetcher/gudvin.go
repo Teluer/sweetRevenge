@@ -2,8 +2,14 @@ package fetcher
 
 import (
 	"github.com/PuerkitoBio/goquery"
-	"sweetRevenge/fetcher/web"
+	"sweetRevenge/web"
+	"time"
 )
+
+type Item struct {
+	id   string
+	link string
+}
 
 var categories = []string{
 	"https://gudvin.md/catalog/ulichnoe-osveschenie",
@@ -15,24 +21,29 @@ var categories = []string{
 	"https://gudvin.md/catalog/turizm-sport-i-otdyh",
 }
 
-type ItemDto struct {
-	id       string
-	link     string
-	category string
+// TODO: fetch a random item from a random category
+func OrderItem() {
+
+}
+
+func OrderManyItems(amount int, delay time.Duration) {
+	for i := amount; i > 0; i-- {
+		OrderItem()
+		time.Sleep(delay)
+	}
 }
 
 // TODO: this fetches relative urls for each product
-func FetchGoods() []ItemDto {
-	var itemDtos []ItemDto
+func fetchItems() []Item {
+	var itemDtos []Item
 	for _, category := range categories {
-		items := web.Browser{}.Fetch(category, false).Find("a.product_preview__name_link")
+		items := web.Fetch(category, false).Find("a.product_preview__name_link")
 		items.Each(func(_ int, item *goquery.Selection) {
 			id, _ := item.Attr("data-product")
 			link, _ := item.Attr("href")
-			itemDtos = append(itemDtos, ItemDto{
-				id,
-				link,
-				category,
+			itemDtos = append(itemDtos, Item{
+				id:   id,
+				link: link,
 			})
 		})
 	}

@@ -1,14 +1,5 @@
 package web
 
-/*
-$ go run http-get-socks-transport.go -proxy localhost:1080 \
-    -user myuser -pass mypass \
-    http://example.org
-<!doctype html>
-<html>
-// ... rest of response
-*/
-
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -24,14 +15,9 @@ type TorSession struct {
 	client *http.Client
 }
 
-type Browser struct {
-	torSession *TorSession
-}
-
-var b = Browser{initialize(proxyAddr)}
-
 func Fetch(url string, anon bool) *goquery.Document {
 	if anon {
+		panic("NOT TESTED YET")
 		return fetchAnonimously(url)
 	} else {
 		return fetchUnsafe(url)
@@ -52,12 +38,11 @@ func fetchUnsafe(url string) *goquery.Document {
 	return doc
 }
 
-// TODO: init session here, always open new session on request.
 func fetchAnonimously(url string) *goquery.Document {
-	return b.torSession.callTor(url)
+	return openSession(proxyAddr).callTor(url)
 }
 
-func initialize(proxyAddr string) *TorSession {
+func openSession(proxyAddr string) *TorSession {
 	//proxyAddr := flag.String("proxy", "localhost:1080", "SOCKS5 proxy address to use")
 	//username := flag.String("user", "", "username for SOCKS5 proxy")
 	//password := flag.String("pass", "", "password for SOCKS5 proxy")

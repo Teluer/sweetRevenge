@@ -3,9 +3,9 @@ package dto
 import "time"
 
 type Lady struct {
-	phone     string `gorm:"primaryKey"`
-	usedLast  time.Time
-	usedTimes int
+	Phone     string `gorm:"primaryKey"`
+	UsedLast  time.Time
+	UsedTimes int
 }
 
 func (Lady) TableName() string {
