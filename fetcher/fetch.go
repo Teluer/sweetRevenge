@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// TODO: use browser method instead
 func fetch(url string) *goquery.Document {
 	resp, err := http.Get(url)
 	if err != nil {

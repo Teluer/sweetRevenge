@@ -8,11 +8,12 @@ import (
 )
 
 const baseUrl = "https://999.md"
+
+// TODO: fetch other sections too
 const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
 
 func GetLadiesPhones() []string {
 	var urls, phones []string
-	//TODO: get list of ads and add to urls. if last page is current, stop.
 
 	currentUrl := ladiesUrl
 	pageNumber := 1
@@ -22,7 +23,7 @@ func GetLadiesPhones() []string {
 		if len(ladies) > 0 {
 			urls = append(urls, ladies...)
 		}
-		//TODO
+		//TODO: remove test condition, make 1 second pause
 		if !hasNextPage || true {
 			break
 		}
@@ -39,19 +40,9 @@ func GetLadiesPhones() []string {
 	}
 
 	return phones
-
-	//for _, url := range urls {
-	//	go fetch(url, ch) // start a goroutine
-	//}
-	//for range urls {8
-	//	fmt.Println(<-ch) // receive from channel ch
-	//}
 }
 
-// TODO: get all ads - solve search bug
 func parseLadiesList(htmlPage *goquery.Document) ([]string, bool) {
-	//<nav class="paginator cf"> <ul>
-	//<li class="current"><a href="/ru/list/dating-and-greetings/i-need-a-man" data-pjax="">
 	hasNextString := htmlPage.Find("nav.paginator").Find(".current").Next().Length() > 0
 
 	urls := htmlPage.Find("ul.ads-list-photo").First().Children()
@@ -66,9 +57,7 @@ func parseLadiesList(htmlPage *goquery.Document) ([]string, bool) {
 }
 
 func getPhone(htmlPage *goquery.Document) string {
-	//****MAY BE HIDDEN
-	//<dl class="js-phone-number adPage__content__phone grid_18">
-	//   <a href="tel:+37368829133">
+	//TODO: phone MAY BE HIDDEN, handle this case
 	phoneNode := htmlPage.Find("dl.js-phone-number")
 	phone, _ := phoneNode.Find("a").Attr("href")
 	phone = strings.TrimPrefix(phone, "tel:+373")

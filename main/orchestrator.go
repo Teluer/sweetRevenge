@@ -2,7 +2,7 @@ package main
 
 import "sweetRevenge/fetcher"
 
-/*TODO
+/*TODO:
 check data in DB: select least used phone and least used name
 if no luck with phones, go to 999 and update
 if no luck with names, go to names sources and update
