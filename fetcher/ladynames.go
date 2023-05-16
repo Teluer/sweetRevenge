@@ -2,26 +2,44 @@ package fetcher
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	"sweetRevenge/db/dao"
+	"sweetRevenge/db/dto"
+	"time"
 )
 
 const firstNamesUrl = "https://forebears.io/moldova/forenames"
 const lastNamesUrl = "https://surnam.es/moldova"
 
-func FetchFirstNames() []string {
-	page := fetch(firstNamesUrl).Find("tbody")
-	females := page.Find("div.f")
-	femaleNames := females.Parent().Next().Children()
-	femaleNamesString := femaleNames.Map(func(_ int, name *goquery.Selection) string {
-		return name.Text()
-	})
-	return femaleNamesString
+func UpdateFirstNames() {
+	//TODO: check if table is empty
+	if dao.IsTableEmpty(&dto.FirstName{}) {
+		names := fetchFirstNames()
+		dao.Insert(&names)
+	}
 }
 
-func FetchLastNames() []string {
-	page := fetch(firstNamesUrl).Find("ol.row")
-	lastNames := page.Find("a")
-	lastNamesString := lastNames.Map(func(_ int, name *goquery.Selection) string {
-		return name.Text()
+func UpdateLastNames() {
+	if dao.IsTableEmpty(&dto.LastName{}) {
+		names := fetchLastNames()
+		dao.Insert(&names)
+	}
+}
+
+func fetchFirstNames() (dtos []dto.FirstName) {
+	page := fetch(firstNamesUrl).Find("tbody")
+	femaleNames := page.Find("div.f").Parent().Next().Children()
+
+	femaleNames.Each(func(_ int, name *goquery.Selection) {
+		dtos = append(dtos, dto.FirstName{name.Text(), time.Now(), 0})
 	})
-	return lastNamesString
+
+	return dtos
+}
+
+func fetchLastNames() (dtos []dto.LastName) {
+	lastNames := fetch(lastNamesUrl).Find("ol.row").Find("a")
+	lastNames.Each(func(_ int, name *goquery.Selection) {
+		dtos = append(dtos, dto.LastName{name.Text(), time.Now(), 0})
+	})
+	return dtos
 }

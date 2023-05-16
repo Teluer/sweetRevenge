@@ -1,7 +1,6 @@
 package fetcher
 
 import (
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"strconv"
 	"strings"
@@ -50,7 +49,6 @@ func parseLadiesList(htmlPage *goquery.Document) ([]string, bool) {
 	title := items.Find(".ads-list-photo-item-title").Children()
 	hrefs := title.Map(func(i int, a *goquery.Selection) string {
 		href, _ := a.Attr("href")
-		fmt.Println(href)
 		return href
 	})
 	return hrefs, hasNextString
@@ -61,6 +59,5 @@ func getPhone(htmlPage *goquery.Document) string {
 	phoneNode := htmlPage.Find("dl.js-phone-number")
 	phone, _ := phoneNode.Find("a").Attr("href")
 	phone = strings.TrimPrefix(phone, "tel:+373")
-	fmt.Println(phone)
 	return phone
 }

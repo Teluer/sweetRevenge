@@ -1,4 +1,4 @@
-package tor
+package web
 
 /*
 $ go run http-get-socks-transport.go -proxy localhost:1080 \
@@ -18,6 +18,8 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+const proxyAddr = "localhost:1080"
+
 type TorSession struct {
 	client *http.Client
 }
@@ -26,15 +28,17 @@ type Browser struct {
 	torSession *TorSession
 }
 
-func (b Browser) Fetch(url string, anon bool) *goquery.Document {
+var b = Browser{initialize(proxyAddr)}
+
+func Fetch(url string, anon bool) *goquery.Document {
 	if anon {
-		return b.fetchAnonimously(url)
+		return fetchAnonimously(url)
 	} else {
-		return b.fetchUnsafe(url)
+		return fetchUnsafe(url)
 	}
 }
 
-func (b Browser) fetchUnsafe(url string) *goquery.Document {
+func fetchUnsafe(url string) *goquery.Document {
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(fmt.Sprintf("while reading %s: %v", url, err))
@@ -45,16 +49,15 @@ func (b Browser) fetchUnsafe(url string) *goquery.Document {
 		panic(fmt.Sprintf("while parsing %s: %v", url, err))
 	}
 	resp.Body.Close() // don't leak resources
-
 	return doc
 }
 
-//TODO: init session here, always open new session on request.
-func (b Browser) fetchAnonimously(url string) *goquery.Document {
+// TODO: init session here, always open new session on request.
+func fetchAnonimously(url string) *goquery.Document {
 	return b.torSession.callTor(url)
 }
 
-func (ts TorSession) Init(proxyAddr string) {
+func initialize(proxyAddr string) *TorSession {
 	//proxyAddr := flag.String("proxy", "localhost:1080", "SOCKS5 proxy address to use")
 	//username := flag.String("user", "", "username for SOCKS5 proxy")
 	//password := flag.String("pass", "", "password for SOCKS5 proxy")
@@ -71,15 +74,16 @@ func (ts TorSession) Init(proxyAddr string) {
 		log.Fatal(err)
 	}
 
+	var ts TorSession
 	ts.client = &http.Client{
 		Transport: &http.Transport{
 			Dial: dialer.Dial,
 		},
 	}
+	return &ts
 }
 
 // TODO: see if auth is needed
-// TODO: return something better than string
 func (ts TorSession) callTor(target string) *goquery.Document {
 	//target := flag.String("target", "http://example.org", "URL to get")
 	if ts.client == nil {
@@ -91,10 +95,10 @@ func (ts TorSession) callTor(target string) *goquery.Document {
 		panic(err)
 	}
 	doc, err := goquery.NewDocumentFromReader(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	defer r.Body.Close()
 	return doc
 }

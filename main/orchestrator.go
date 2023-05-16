@@ -1,6 +1,8 @@
 package main
 
-import "sweetRevenge/fetcher"
+import (
+	"sweetRevenge/fetcher"
+)
 
 /*TODO:
 check data in DB: select least used phone and least used name
@@ -14,5 +16,9 @@ set timer to sleep
 */
 
 func main() {
-	fetcher.GetLadiesPhones()
+	//fetcher.GetLadiesPhones()
+	//db.Connect()
+
+	fetcher.UpdateLastNames()
+	fetcher.UpdateFirstNames()
 }
