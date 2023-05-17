@@ -17,8 +17,8 @@ type TorSession struct {
 
 func Post(req *http.Request, anon bool) {
 	if anon {
-		panic("NOT TESTED YET")
-		openSession(proxyAddr).postAnonymously(req)
+		//panic("NOT TESTED YET")
+		OpenSession(proxyAddr).postAnonymously(req)
 	} else {
 		postUnsafe(req)
 	}
@@ -31,8 +31,8 @@ func Fetch(url string, anon bool) *goquery.Document {
 
 func FetchWithCookies(url string, anon bool) (*goquery.Document, []*http.Cookie) {
 	if anon {
-		panic("NOT TESTED YET")
-		return openSession(proxyAddr).callTor(url)
+		//panic("NOT TESTED YET")
+		return OpenSession(proxyAddr).CallTor(url)
 	} else {
 		return fetchUnsafe(url)
 	}
@@ -71,18 +71,16 @@ func (ts TorSession) postAnonymously(req *http.Request) {
 	fmt.Printf("Post returned status %s", resp.Status)
 }
 
-func openSession(proxyAddr string) *TorSession {
-	//proxyAddr := flag.String("proxy", "localhost:1080", "SOCKS5 proxy address to use")
+func OpenSession(proxyAddr string) *TorSession {
 	//username := flag.String("user", "", "username for SOCKS5 proxy")
 	//password := flag.String("pass", "", "password for SOCKS5 proxy")
-	//flag.Parse()
 
 	//auth := proxy.Auth{
 	//	User:     *username,
 	//	Password: *password,
 	//}
 	//dialer, err := proxy.SOCKS5("tcp", *proxyAddr, &auth, nil)
-	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, nil)
+	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
 	if err != nil {
 		//TODO implement logging and error handling
 		log.Fatal(err)
@@ -98,8 +96,7 @@ func openSession(proxyAddr string) *TorSession {
 }
 
 // TODO: see if auth is needed
-func (ts TorSession) callTor(target string) (*goquery.Document, []*http.Cookie) {
-	//target := flag.String("target", "http://example.org", "URL to get")
+func (ts TorSession) CallTor(target string) (*goquery.Document, []*http.Cookie) {
 	if ts.client == nil {
 		panic("need to init client first!")
 	}

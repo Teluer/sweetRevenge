@@ -5,17 +5,19 @@ import (
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
+	"sync"
 	"time"
 )
 
 const firstNamesUrl = "https://forebears.io/moldova/forenames"
 
-func UpdateFirstNames() {
+func UpdateFirstNames(wg *sync.WaitGroup) {
 	//TODO: check if table is empty
 	if dao.IsTableEmpty(&dto.FirstName{}) {
 		names := fetchFirstNames()
 		dao.Insert(&names)
 	}
+	wg.Done()
 }
 
 func fetchFirstNames() (dtos []dto.FirstName) {

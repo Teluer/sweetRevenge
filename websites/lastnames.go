@@ -5,16 +5,18 @@ import (
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
+	"sync"
 	"time"
 )
 
 const lastNamesUrl = "https://surnam.es/moldova"
 
-func UpdateLastNames() {
+func UpdateLastNames(wg *sync.WaitGroup) {
 	if dao.IsTableEmpty(&dto.LastName{}) {
 		names := fetchLastNames()
 		dao.Insert(&names)
 	}
+	wg.Done()
 }
 
 func fetchLastNames() (dtos []dto.LastName) {

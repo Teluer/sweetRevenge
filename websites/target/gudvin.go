@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sweetRevenge/db/dao"
+	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
 )
 
@@ -19,12 +20,12 @@ type OrderBody struct {
 	//name=Сергей Реулец
 	//phone=079744327
 	//delivery_id=4
-	variant_id  string
-	amount      string //default ""
-	IsFastOrder string //default "true"
-	name        string
-	phone       string
-	delivery_id string //default "4"
+	VariantId   string `json:"variant_id"`
+	Amount      string `json:"amount"`
+	IsFastOrder string `json:"IsFastOrder"`
+	Name        string `json:"name"`
+	Phone       string `json:"phone"`
+	DeliveryId  string `json:"delivery_id"`
 }
 
 // add 0 several times to increase probability
@@ -47,24 +48,53 @@ var categories = []string{
 
 func OrderItem() {
 	name, phone := createRandomCustomer()
+	OrderItemWithCustomer(name, phone)
+}
+
+func OrderItemWithCustomer(name, phone string) {
+	OrderItemWithCustomerAndTarget(orderLink, name, phone)
+}
+
+func OrderItemWithCustomerAndTarget(targetUrl, name, phone string) {
 	//TODO: remove println
 	fmt.Println(name, phone)
 	itemId, link := fetchRandomItem()
+	OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link)
+}
+
+func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link string) {
 	fmt.Println(itemId, link)
 
 	cookies := getCookies(link)
-	req := prepareOrderPostRequest(name, phone, itemId, link, cookies)
+	req := prepareOrderPostRequest(targetUrl, name, phone, itemId, link, cookies)
 	web.Post(req, true)
 }
 
-func prepareOrderPostRequest(name string, phone string, itemId string, referer string, cookies []*http.Cookie) *http.Request {
+func ExecuteManualOrder() {
+	var manualOrder dto.ManualOrder
+	dao.FindFirstAndDelete(&manualOrder)
+
+	//if not found
+	if manualOrder.Phone == "" {
+		return
+	}
+
+	//send either to default target, or to custom url
+	if manualOrder.Target == "" {
+		OrderItemWithCustomer(manualOrder.Name, manualOrder.Phone)
+	} else {
+		OrderItemWithCustomerAndTarget(manualOrder.Target, manualOrder.Name, manualOrder.Phone)
+	}
+}
+
+func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
 	//create request body
 	order, err := json.Marshal(OrderBody{
-		variant_id:  itemId,
-		amount:      "",
-		name:        name,
-		phone:       phone,
-		delivery_id: "4",
+		VariantId:   itemId,
+		Amount:      "",
+		Name:        name,
+		Phone:       phone,
+		DeliveryId:  "4",
 		IsFastOrder: "true",
 	})
 	if err != nil {
@@ -73,7 +103,7 @@ func prepareOrderPostRequest(name string, phone string, itemId string, referer s
 	orderBody := string(order)
 
 	//create request
-	request, err := http.NewRequest("Post", orderLink, strings.NewReader(orderBody))
+	request, err := http.NewRequest("Post", target, strings.NewReader(orderBody))
 	if err != nil {
 		panic("failed to make request!")
 	}

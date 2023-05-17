@@ -3,6 +3,7 @@ package dao
 import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"sweetRevenge/db/dto"
 )
 
 type GormDao struct {
@@ -29,7 +30,9 @@ func IsTableEmpty(obj any) bool {
 	return dao.db.Limit(1).Find(obj).RowsAffected == 0
 }
 
-func SelectAll(obj any) any {
-	rows, _ := dao.db.Find(obj).Rows()
-	return rows
+func FindFirstAndDelete(obj *dto.ManualOrder) {
+	dao.db.Limit(1).Find(obj)
+	if obj.Phone != "" {
+		dao.db.Delete(obj)
+	}
 }

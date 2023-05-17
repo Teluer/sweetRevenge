@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"sweetRevenge/websites"
 	"sweetRevenge/websites/target"
+	"sync"
 	"time"
 )
 
@@ -17,24 +18,38 @@ const sendOrdersBaseInterval = time.Hour * 1
 const sendOrdersIntervalVariation = sendOrdersBaseInterval / 2
 const jobStart = time.Hour * 10
 const jobEnd = time.Hour * 21
+const sendManualOrderRefreshInterval = time.Minute
 
 func main() {
-	//mainLogic()
-
-	target.TestCookies()
+	mainLogic()
+	//var wg sync.WaitGroup
+	//wg.Add(1)
+	////target.TestCookies()
+	//go target.Server()
+	//target.SendTestOrder()
+	//wg.Wait()
 }
 
 func mainLogic() {
-	websites.UpdateLastNames()
-	websites.UpdateFirstNames()
-	//wait for the first update to complete, then start goroutine
-	websites.UpdateLadies()
-	go updateLadiesRoutine()
+	var wg sync.WaitGroup
+
+	wg.Add(3)
+	go websites.UpdateLastNames(&wg)
+	go websites.UpdateFirstNames(&wg)
+	//wait for the first update to complete, then proceed
+	go updateLadiesRoutine(&wg)
+	wg.Wait()
+
 	//everything ready, start sending orders
-	go sendOrdersRoutine()
+	//TODO: enable this when manually tested ordering and the admin called
+	//go sendOrdersRoutine()
+	//run a thread allowing to send a custom order manually
+	go manualOrdersRoutine()
 }
 
-func updateLadiesRoutine() {
+func updateLadiesRoutine(wg *sync.WaitGroup) {
+	websites.UpdateLadies()
+	wg.Done()
 	for {
 		time.Sleep(updateLadiesInterval)
 		websites.UpdateLadies()
@@ -49,6 +64,13 @@ func sendOrdersRoutine() {
 		sleepDuration := time.Duration(float64(sendOrdersIntervalVariation) *
 			(rand.Float64() - 0.5))
 		time.Sleep(sleepDuration)
+	}
+}
+
+func manualOrdersRoutine() {
+	for {
+		target.ExecuteManualOrder()
+		time.Sleep(sendManualOrderRefreshInterval)
 	}
 }
 
