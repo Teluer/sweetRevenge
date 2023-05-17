@@ -15,16 +15,30 @@ type TorSession struct {
 	client *http.Client
 }
 
-func Fetch(url string, anon bool) *goquery.Document {
+func Post(req *http.Request, anon bool) {
 	if anon {
 		panic("NOT TESTED YET")
-		return fetchAnonimously(url)
+		openSession(proxyAddr).postAnonymously(req)
+	} else {
+		postUnsafe(req)
+	}
+}
+
+func Fetch(url string, anon bool) *goquery.Document {
+	result, _ := FetchWithCookies(url, anon)
+	return result
+}
+
+func FetchWithCookies(url string, anon bool) (*goquery.Document, []*http.Cookie) {
+	if anon {
+		panic("NOT TESTED YET")
+		return openSession(proxyAddr).callTor(url)
 	} else {
 		return fetchUnsafe(url)
 	}
 }
 
-func fetchUnsafe(url string) *goquery.Document {
+func fetchUnsafe(url string) (*goquery.Document, []*http.Cookie) {
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(fmt.Sprintf("while reading %s: %v", url, err))
@@ -35,11 +49,26 @@ func fetchUnsafe(url string) *goquery.Document {
 		panic(fmt.Sprintf("while parsing %s: %v", url, err))
 	}
 	resp.Body.Close() // don't leak resources
-	return doc
+	return doc, resp.Cookies()
 }
 
-func fetchAnonimously(url string) *goquery.Document {
-	return openSession(proxyAddr).callTor(url)
+func postUnsafe(req *http.Request) {
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(fmt.Sprintf("failed to send post request %v", err))
+	}
+	fmt.Printf("Post returned status %s", resp.Status)
+}
+
+func (ts TorSession) postAnonymously(req *http.Request) {
+	if ts.client == nil {
+		panic("need to init client first!")
+	}
+	resp, err := ts.client.Do(req)
+	if err != nil {
+		panic(fmt.Sprintf("failed to send post request %v", err))
+	}
+	fmt.Printf("Post returned status %s", resp.Status)
 }
 
 func openSession(proxyAddr string) *TorSession {
@@ -69,7 +98,7 @@ func openSession(proxyAddr string) *TorSession {
 }
 
 // TODO: see if auth is needed
-func (ts TorSession) callTor(target string) *goquery.Document {
+func (ts TorSession) callTor(target string) (*goquery.Document, []*http.Cookie) {
 	//target := flag.String("target", "http://example.org", "URL to get")
 	if ts.client == nil {
 		panic("need to init client first!")
@@ -85,5 +114,5 @@ func (ts TorSession) callTor(target string) *goquery.Document {
 		panic(err)
 	}
 
-	return doc
+	return doc, r.Cookies()
 }

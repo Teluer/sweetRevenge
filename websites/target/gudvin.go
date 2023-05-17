@@ -1,23 +1,39 @@
 package target
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"math/rand"
+	"net/http"
+	"strconv"
 	"strings"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/websites/web"
 )
 
-type Item struct {
-	id   string
-	link string
+type OrderBody struct {
+	//variant_id=158
+	//amount
+	//IsFastOrder=true
+	//name=Сергей Реулец
+	//phone=079744327
+	//delivery_id=4
+	variant_id  string
+	amount      string //default ""
+	IsFastOrder string //default "true"
+	name        string
+	phone       string
+	delivery_id string //default "4"
 }
 
 // add 0 several times to increase probability
 var phonePrefixes = []string{
 	"0", "0", "0", "+373", "(+373) ", "+373 ",
 }
+
+const baselink = "https://gudvin.md"
+const orderLink = baselink + "/okay-cms/fast-order/create-order"
 
 var categories = []string{
 	"https://gudvin.md/catalog/ulichnoe-osveschenie",
@@ -29,7 +45,6 @@ var categories = []string{
 	"https://gudvin.md/catalog/turizm-sport-i-otdyh",
 }
 
-// TODO: fetch a random item from a random category, make order
 func OrderItem() {
 	name, phone := createRandomCustomer()
 	//TODO: remove println
@@ -37,13 +52,66 @@ func OrderItem() {
 	itemId, link := fetchRandomItem()
 	fmt.Println(itemId, link)
 
-	// TODO: fetch a random item from a random category, make order
+	cookies := getCookies(link)
+	req := prepareOrderPostRequest(name, phone, itemId, link, cookies)
+	web.Post(req, true)
+}
+
+func prepareOrderPostRequest(name string, phone string, itemId string, referer string, cookies []*http.Cookie) *http.Request {
+	//create request body
+	order, err := json.Marshal(OrderBody{
+		variant_id:  itemId,
+		amount:      "",
+		name:        name,
+		phone:       phone,
+		delivery_id: "4",
+		IsFastOrder: "true",
+	})
+	if err != nil {
+		panic("failed to marshal request body!")
+	}
+	orderBody := string(order)
+
+	//create request
+	request, err := http.NewRequest("Post", orderLink, strings.NewReader(orderBody))
+	if err != nil {
+		panic("failed to make request!")
+	}
+
+	//set cookies previously returned by the server
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+
+	//set proper headers
+	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
+	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	request.Header.Set("Content-Length", strconv.Itoa(len(orderBody)))
+	request.Header.Set("X-Requested-With", "XMLHttpRequest")
+	request.Header.Set("Origin", "https://gudvin.md")
+	request.Header.Set("DNT", "1")
+	request.Header.Set("Connection", "keep-alive")
+	request.Header.Set("Referer", referer)
+	request.Header.Set("Sec-Fetch-Dest", "empty")
+	request.Header.Set("Sec-Fetch-Mode", "cors")
+	request.Header.Set("Sec-Fetch-Site", "same-origin")
+
+	return request
+}
+
+func getCookies(link string) []*http.Cookie {
+	_, cookies := web.FetchWithCookies(link, true)
+	return cookies
 }
 
 func fetchRandomItem() (id string, link string) {
 	randomCategory := categories[rand.Intn(len(categories))]
-	items := web.Fetch(randomCategory, false).Find("a.product_preview__name_link")
+	page := web.Fetch(randomCategory, true)
 
+	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())
 	items.EachWithBreak(func(i int, item *goquery.Selection) bool {
 		if i == randomItem {
@@ -53,6 +121,8 @@ func fetchRandomItem() (id string, link string) {
 		}
 		return true
 	})
+
+	link = baselink + link
 
 	return id, link
 }
