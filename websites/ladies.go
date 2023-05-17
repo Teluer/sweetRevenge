@@ -83,5 +83,5 @@ func getLady(htmlPage *goquery.Document) dto.Lady {
 		Find("a").Attr("href")
 	phone = strings.TrimPrefix(phone, "tel:+373")
 
-	return dto.Lady{Phone: phone, UsedLast: time.Now()}
+	return dto.Lady{Phone: phone}
 }

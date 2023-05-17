@@ -6,7 +6,6 @@ import (
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
 	"sync"
-	"time"
 )
 
 const firstNamesUrl = "https://forebears.io/moldova/forenames"
@@ -25,7 +24,7 @@ func fetchFirstNames() (dtos []dto.FirstName) {
 	femaleNames := page.Find("div.f").Parent().Next().Children()
 
 	femaleNames.Each(func(_ int, name *goquery.Selection) {
-		dtos = append(dtos, dto.FirstName{name.Text(), time.Now(), 0})
+		dtos = append(dtos, dto.FirstName{name.Text(), 0})
 	})
 
 	return dtos
