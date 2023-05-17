@@ -26,7 +26,7 @@ func Insert(obj any) {
 }
 
 func IsTableEmpty(obj any) bool {
-	return dao.db.Model(obj).First(obj).RowsAffected == 0
+	return dao.db.Limit(1).Find(obj).RowsAffected == 0
 }
 
 func SelectAll(obj any) any {

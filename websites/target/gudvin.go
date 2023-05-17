@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/websites/web"
-	"time"
 )
 
 type Item struct {
@@ -35,33 +34,27 @@ func OrderItem() {
 	name, phone := createRandomCustomer()
 	//TODO: remove println
 	fmt.Println(name, phone)
+	itemId, link := fetchRandomItem()
+	fmt.Println(itemId, link)
 
 	// TODO: fetch a random item from a random category, make order
 }
 
-func OrderManyItems(amount int, delay time.Duration) {
-	for i := amount; i > 0; i-- {
-		OrderItem()
-		time.Sleep(delay)
-	}
-}
+func fetchRandomItem() (id string, link string) {
+	randomCategory := categories[rand.Intn(len(categories))]
+	items := web.Fetch(randomCategory, false).Find("a.product_preview__name_link")
 
-// TODO: this fetches relative urls for each product
-// TODO: get random item from random category
-func fetchItems() []Item {
-	var itemDtos []Item
-	for _, category := range categories {
-		items := web.Fetch(category, false).Find("a.product_preview__name_link")
-		items.Each(func(_ int, item *goquery.Selection) {
-			id, _ := item.Attr("data-product")
-			link, _ := item.Attr("href")
-			itemDtos = append(itemDtos, Item{
-				id:   id,
-				link: link,
-			})
-		})
-	}
-	return itemDtos
+	randomItem := rand.Intn(items.Length())
+	items.EachWithBreak(func(i int, item *goquery.Selection) bool {
+		if i == randomItem {
+			id, _ = item.Attr("data-product")
+			link, _ = item.Attr("href")
+			return false
+		}
+		return true
+	})
+
+	return id, link
 }
 
 func createRandomCustomer() (name string, phone string) {

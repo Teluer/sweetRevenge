@@ -30,10 +30,9 @@ func SelectPhones() []string {
 	return result
 }
 
-// TODO: increase used_times
 func GetLeastUsedPhone() string {
 	var lady dto.Lady
-	dao.db.Order("used_times asc").First(&lady)
+	dao.db.Order("used_times asc, used_last").First(&lady)
 	lady.UsedTimes++
 	dao.db.Save(lady)
 	return lady.Phone

@@ -33,7 +33,7 @@ func getLadies() (ladies []dto.Lady) {
 			urls = append(urls, ladyUrls...)
 		}
 		//TODO: remove test condition, make 1 second pause
-		if !hasNextPage {
+		if !hasNextPage || true {
 			break
 		}
 		time.Sleep(ladiesPageSleepTime)
@@ -45,10 +45,23 @@ func getLadies() (ladies []dto.Lady) {
 	for _, url := range urls {
 		url = baseUrl + url
 		ad := web.Fetch(url, false)
-		//time.Sleep(ladiesAdSleepTime)
+		time.Sleep(ladiesAdSleepTime)
 		ladies = append(ladies, getLady(ad))
 	}
-	return ladies
+
+	//remove duplicated phones
+	var uniqueLadies []dto.Lady
+MAIN_LOOP:
+	for _, lady := range ladies {
+		for _, resultLady := range uniqueLadies {
+			if resultLady.Phone == lady.Phone {
+				continue MAIN_LOOP
+			}
+		}
+		uniqueLadies = append(uniqueLadies, lady)
+	}
+
+	return uniqueLadies
 }
 
 func parseLadiesList(htmlPage *goquery.Document) (adLinks []string, hasNextPage bool) {
