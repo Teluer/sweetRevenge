@@ -103,7 +103,6 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 	})
 	if err != nil {
 		log.WithError(err).Error("Failed to marchal request body, cannot send order!")
-
 		panic("failed to marshal request body!")
 	}
 	orderBody := string(order)
@@ -141,7 +140,7 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 
 func getCookies(link string) []*http.Cookie {
 	log.Info("Fetching cookies to build order request")
-	_, cookies := web.FetchWithCookies(link, true)
+	cookies := web.FetchCookies(link, true)
 	return cookies
 }
 
@@ -150,7 +149,7 @@ func findRandomItem() (id string, link string) {
 
 	log.Info("Fetching random item from category " + randomCategory)
 
-	page := web.Fetch(randomCategory, true)
+	page := web.GetUrl(randomCategory, true)
 
 	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())

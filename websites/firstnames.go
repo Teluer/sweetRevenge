@@ -22,7 +22,7 @@ func UpdateFirstNames(wg *sync.WaitGroup) {
 }
 
 func fetchFirstNames() (dtos []dto.FirstName) {
-	page := web.Fetch(firstNamesUrl, false).Find("tbody")
+	page := web.GetUrl(firstNamesUrl, false).Find("tbody")
 	femaleNames := page.Find("div.f").Parent().Next().Children()
 
 	femaleNames.Each(func(_ int, name *goquery.Selection) {

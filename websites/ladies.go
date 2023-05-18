@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"strconv"
 	"strings"
 	"sweetRevenge/db/dao"
@@ -15,7 +16,8 @@ import (
 const baseUrl = "https://999.md"
 
 // TODO: fetch other sections too
-const ladiesUrl = "https://999.md/ru/list/tourism-leisure-and-entertainment/massage" //"https://999.md/ru/list/dating-and-greetings/i-need-a-man"
+// const ladiesUrl = "https://999.md/ru/list/tourism-leisure-and-entertainment/massage"
+const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
 const ladiesPageSleepTime = time.Second * 2
 const ladiesAdSleepTime = time.Second / 2
 
@@ -26,17 +28,13 @@ func UpdateLadies() {
 	dao.SaveNewLadies(ladies)
 }
 
-//TODO: set cookies
-//age_popup_show_guest = False
-//age_popup_show = False
-
 func getLadies() (ladies []dto.Lady) {
 	var urls []string
 	currentUrl := ladiesUrl
 	pageNumber := 1
 	for {
 		log.Info("Fetching lady list from " + currentUrl)
-		page := web.Fetch(currentUrl, false) // start a goroutine
+		page := web.GetUrl(currentUrl, false) // start a goroutine
 		ladyUrls, hasNextPage := parseLadiesList(page)
 		if len(ladyUrls) > 0 {
 			urls = append(urls, ladyUrls...)
@@ -51,12 +49,13 @@ func getLadies() (ladies []dto.Lady) {
 
 	for _, url := range urls {
 		url = baseUrl + url
-		ad := web.Fetch(url, false)
-		time.Sleep(ladiesAdSleepTime)
+		request := getRequestWithPopupBypass(url)
+		ad := web.GetRequest(request, false)
 		lady := getLady(ad)
 		if lady.Phone != "" {
-			ladies = append(ladies, getLady(ad))
+			ladies = append(ladies, lady)
 		}
+		time.Sleep(ladiesAdSleepTime)
 	}
 
 	//remove duplicated phones
@@ -92,4 +91,28 @@ func getLady(htmlPage *goquery.Document) dto.Lady {
 	phone = strings.TrimPrefix(phone, "tel:+373")
 
 	return dto.Lady{Phone: phone}
+}
+
+func getRequestWithPopupBypass(url string) *http.Request {
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.WithError(err).Error("Failed to create request to get lady!")
+		return nil
+	}
+
+	//TODO: set cookies
+	//age_popup_show_guest = False
+	//age_popup_show = False
+	request.AddCookie(&http.Cookie{
+		Name:    "age_popup_show_guest",
+		Value:   "False",
+		Expires: time.Now().Add(365 * 24 * time.Hour),
+	})
+	request.AddCookie(&http.Cookie{
+		Name:    "age_popup_show",
+		Value:   "False",
+		Expires: time.Now().Add(365 * 24 * time.Hour),
+	})
+
+	return request
 }
