@@ -1,27 +1,58 @@
 package dao
 
-import "sweetRevenge/db/dto"
+import (
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"sweetRevenge/db/dto"
+)
 
-func SaveNewLadies(ladies []dto.Lady) {
-	if (IsTableEmpty(&dto.Lady{})) {
+// deprecated
+func SaveNewLadies1(ladies []dto.Lady) {
+	//remove all old records to avoid outdated phones
+	if len(ladies) > 0 && !IsTableEmpty(&dto.Lady{}) {
+		Delete(&dto.Lady{})
 		Insert(&ladies)
 		return
 	}
+}
+
+func SaveNewLadies(ladies []dto.Lady) {
+	log.Info("Saving new ladies")
+	if IsTableEmpty(&dto.Lady{}) {
+		log.Info("Ladies table is empty, populating")
+		Insert(&ladies)
+		return
+	}
+	log.Info("Ladies table has values, adding new, deleting outdated")
 
 	phones := SelectPhones()
 	var newLadies []dto.Lady
+	var outdatedLadies []dto.Lady
 
-MAIN_LOOP:
+NEW_LOOP:
 	for _, lady := range ladies {
 		for _, phone := range phones {
 			if phone == lady.Phone {
-				continue MAIN_LOOP
+				continue NEW_LOOP
 			}
 		}
 		newLadies = append(newLadies, lady)
 	}
 
+OUTDATED_LOOP:
+	for _, phone := range phones {
+		for _, lady := range ladies {
+			if phone == lady.Phone {
+				continue OUTDATED_LOOP
+			}
+		}
+		outdatedLadies = append(outdatedLadies, dto.Lady{Phone: phone})
+	}
+
+	log.Info(fmt.Sprintf("Inserting %s ladies", len(newLadies)))
 	Insert(&newLadies)
+	log.Info(fmt.Sprintf("Deleting %s ladies", len(outdatedLadies)))
+	Delete(&outdatedLadies)
 }
 
 func SelectPhones() []string {
@@ -32,8 +63,8 @@ func SelectPhones() []string {
 
 func GetLeastUsedPhone() string {
 	var lady dto.Lady
-	dao.db.Order("used_times asc, used_last").First(&lady)
+	dao.db.Order("used_times asc").First(&lady)
 	lady.UsedTimes++
-	dao.db.Save(lady)
+	dao.db.Save(&lady)
 	return lady.Phone
 }

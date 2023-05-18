@@ -2,6 +2,7 @@ package websites
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
@@ -11,8 +12,8 @@ import (
 const firstNamesUrl = "https://forebears.io/moldova/forenames"
 
 func UpdateFirstNames(wg *sync.WaitGroup) {
-	//TODO: check if table is empty
 	if dao.IsTableEmpty(&dto.FirstName{}) {
+		log.Info("First names table empty, updating")
 		names := fetchFirstNames()
 		dao.Insert(&names)
 	}
@@ -24,7 +25,7 @@ func fetchFirstNames() (dtos []dto.FirstName) {
 	femaleNames := page.Find("div.f").Parent().Next().Children()
 
 	femaleNames.Each(func(_ int, name *goquery.Selection) {
-		dtos = append(dtos, dto.FirstName{name.Text(), 0})
+		dtos = append(dtos, dto.FirstName{FirstName: name.Text()})
 	})
 
 	return dtos

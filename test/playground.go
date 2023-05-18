@@ -1,4 +1,4 @@
-package target
+package test
 
 import (
 	"fmt"
@@ -6,30 +6,21 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sweetRevenge/websites/target"
 	"sweetRevenge/websites/web"
+	"sync"
 )
 
 const testUrl = "https://ed3e-46-55-27-40.ngrok-free.app"
 const customer = "Ana Popescu"
 const phone = "0000000"
 
-func TestCookies() {
-	url := "https://gudvin.md/products/skladnoj-organajzer-dlya-bagazhnika-avtomobilya-car-organizer-s-3-otdeleniyami"
-	resp, err := http.Get(url)
-
-	if err != nil {
-		for _, c := range resp.Cookies() {
-			fmt.Println(c)
-		}
-	}
-}
-
-func SendTestRequest() {
-	web.OpenSession("localhost:1080").CallTor(testUrl)
-}
-
 func SendTestOrder() {
-	OrderItemWithCustomerAndTargetAndItemAndLink(testUrl, customer, phone, "126", "https://gudvin.md/products/naduvnoj-divan---lamzak")
+	target.OrderItemWithCustomerAndTargetAndItemAndLink(testUrl,
+		customer,
+		phone,
+		"126",
+		"https://gudvin.md/products/naduvnoj-divan---lamzak")
 }
 
 func Server() {
@@ -40,7 +31,6 @@ func Server() {
 func handler(w http.ResponseWriter, r *http.Request) {
 	buf := new(strings.Builder)
 	io.Copy(buf, r.Body)
-	// check errors
 
 	fmt.Println(buf.String())
 	fmt.Println(r.RemoteAddr)
@@ -54,4 +44,24 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(name, value)
 		}
 	}
+}
+
+func TestAnonSending() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go Server()
+	SendTestOrder()
+	wg.Wait()
+}
+
+func SendTestRequest() {
+	web.OpenSession("localhost:1080").GetAnonymously(testUrl)
+}
+
+func TestRandomCustomers() {
+	for i := 0; i < 20; i++ {
+		name, phone := target.CreateRandomCustomer()
+		fmt.Println(name, "  ", phone)
+	}
+
 }

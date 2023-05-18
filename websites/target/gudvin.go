@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -14,12 +15,6 @@ import (
 )
 
 type OrderBody struct {
-	//variant_id=158
-	//amount
-	//IsFastOrder=true
-	//name=Сергей Реулец
-	//phone=079744327
-	//delivery_id=4
 	VariantId   string `json:"variant_id"`
 	Amount      string `json:"amount"`
 	IsFastOrder string `json:"IsFastOrder"`
@@ -30,7 +25,7 @@ type OrderBody struct {
 
 // add 0 several times to increase probability
 var phonePrefixes = []string{
-	"0", "0", "0", "+373", "(+373) ", "+373 ",
+	"0", "0", "0", "0", "+373", "(+373)", "+373 ",
 }
 
 const baselink = "https://gudvin.md"
@@ -47,7 +42,7 @@ var categories = []string{
 }
 
 func OrderItem() {
-	name, phone := createRandomCustomer()
+	name, phone := CreateRandomCustomer()
 	OrderItemWithCustomer(name, phone)
 }
 
@@ -58,31 +53,40 @@ func OrderItemWithCustomer(name, phone string) {
 func OrderItemWithCustomerAndTarget(targetUrl, name, phone string) {
 	//TODO: remove println
 	fmt.Println(name, phone)
-	itemId, link := fetchRandomItem()
+	itemId, link := findRandomItem()
 	OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link)
 }
 
 func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link string) {
-	fmt.Println(itemId, link)
+	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
+		name, phone, itemId, link, targetUrl))
 
 	cookies := getCookies(link)
+	log.Info("Got cookies: ", cookies)
 	req := prepareOrderPostRequest(targetUrl, name, phone, itemId, link, cookies)
 	web.Post(req, true)
+	log.Info("Sent order successfully")
 }
 
 func ExecuteManualOrder() {
+	log.Info("Checking if should send manual orders")
+
 	var manualOrder dto.ManualOrder
 	dao.FindFirstAndDelete(&manualOrder)
 
 	//if not found
 	if manualOrder.Phone == "" {
+		log.Info("Manual orders not found, doing nothing")
 		return
 	}
 
 	//send either to default target, or to custom url
 	if manualOrder.Target == "" {
+		log.Info(fmt.Sprintf("Sending manual order for %s %s", manualOrder.Name, manualOrder.Phone))
 		OrderItemWithCustomer(manualOrder.Name, manualOrder.Phone)
 	} else {
+		log.Info(fmt.Sprintf("Sending manual order for %s %s to %s",
+			manualOrder.Name, manualOrder.Phone, manualOrder.Target))
 		OrderItemWithCustomerAndTarget(manualOrder.Target, manualOrder.Name, manualOrder.Phone)
 	}
 }
@@ -98,6 +102,8 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 		IsFastOrder: "true",
 	})
 	if err != nil {
+		log.WithError(err).Error("Failed to marchal request body, cannot send order!")
+
 		panic("failed to marshal request body!")
 	}
 	orderBody := string(order)
@@ -105,6 +111,7 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 	//create request
 	request, err := http.NewRequest("Post", target, strings.NewReader(orderBody))
 	if err != nil {
+		log.WithError(err).Error("Failed to create request for order!")
 		panic("failed to make request!")
 	}
 
@@ -133,12 +140,16 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 }
 
 func getCookies(link string) []*http.Cookie {
+	log.Info("Fetching cookies to build order request")
 	_, cookies := web.FetchWithCookies(link, true)
 	return cookies
 }
 
-func fetchRandomItem() (id string, link string) {
+func findRandomItem() (id string, link string) {
 	randomCategory := categories[rand.Intn(len(categories))]
+
+	log.Info("Fetching random item from category " + randomCategory)
+
 	page := web.Fetch(randomCategory, true)
 
 	items := page.Find("a.product_preview__name_link")
@@ -154,19 +165,23 @@ func fetchRandomItem() (id string, link string) {
 
 	link = baselink + link
 
+	log.Info("Will order the following item: " + id + " " + link)
+
 	return id, link
 }
 
-func createRandomCustomer() (name string, phone string) {
-	const firstNameOnlyIncidence = 0.25
+func CreateRandomCustomer() (name string, phone string) {
+	const firstNameOnlyIncidence = 0.2
 	const firstNameAfterLastNameIncidence = 0.6
 	const nameLowerCaseIncidence = 0.08
 	const phoneWithSpaceIncidence = 0.5
 
+	log.Info("Generating a random customer name/phone combination")
+
 	//write phones in random formats
 	phone = dao.GetLeastUsedPhone()
 	prefixIndex := rand.Intn(len(phonePrefixes))
-	if prefixIndex >= 4 && evaluateProbability(phoneWithSpaceIncidence) {
+	if prefixIndex >= 5 && evaluateProbability(phoneWithSpaceIncidence) {
 		phone = phone[:2] + " " + phone[2:]
 	}
 	prefix := phonePrefixes[rand.Intn(len(phonePrefixes))]

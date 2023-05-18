@@ -1,6 +1,7 @@
 package dao
 
 import (
+	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"sweetRevenge/db/dto"
@@ -13,26 +14,36 @@ type GormDao struct {
 var dao = open()
 
 func open() *GormDao {
-	// refer https://github.com/go-sql-driver/mysql#dsn-data-source-name for details
+	log.Info("Opening connection to DB")
 	dsn := "goblin:password1!@tcp(localhost:3306)/sweet?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
+		log.Error("Failed to connect to DB")
 		panic(err)
 	}
 	return &GormDao{db}
 }
 
 func Insert(obj any) {
+	log.WithField("obj", obj).Debug("Inserting data")
 	dao.db.Create(obj)
+}
+
+func Delete(obj any) {
+	log.WithField("obj", obj).Debug("Deleting data")
+	dao.db.Where("1 = 1").Delete(obj)
 }
 
 func IsTableEmpty(obj any) bool {
 	return dao.db.Limit(1).Find(obj).RowsAffected == 0
 }
 
+// TODO: replace with MQ?
 func FindFirstAndDelete(obj *dto.ManualOrder) {
+	log.Debug("Getting manual order")
+
 	dao.db.Limit(1).Find(obj)
 	if obj.Phone != "" {
-		dao.db.Delete(obj)
+		dao.db.Where("phone = ?", obj.Phone).Delete(obj)
 	}
 }

@@ -1,17 +1,15 @@
 package main
 
 import (
+	log "github.com/sirupsen/logrus"
+	"io"
 	"math/rand"
+	"os"
 	"sweetRevenge/websites"
 	"sweetRevenge/websites/target"
 	"sync"
 	"time"
 )
-
-/*TODO:
-connect to TOR via Socks
-go to the shop and make an order
-*/
 
 const updateLadiesInterval = time.Hour * 4
 const sendOrdersBaseInterval = time.Hour * 1
@@ -20,20 +18,30 @@ const jobStart = time.Hour * 10
 const jobEnd = time.Hour * 21
 const sendManualOrderRefreshInterval = time.Minute
 
+func init() {
+	//log.SetReportCaller(true)
+	log.Info("Program Startup")
+	//TODO: write to file as well
+	log.SetOutput(io.MultiWriter(os.Stdout))
+}
+
 func main() {
+
 	mainLogic()
-	//var wg sync.WaitGroup
-	//wg.Add(1)
-	////target.TestCookies()
-	//go target.Server()
-	//target.SendTestOrder()
-	//wg.Wait()
+	//test.TestAnonSending()
+	//test.SendTestRequest()
+	//websites.UpdateLadies()
+
+	//wait indefinitely
+	select {}
 }
 
 func mainLogic() {
-	var wg sync.WaitGroup
+	rand.Seed(time.Now().UnixMilli())
 
-	wg.Add(3)
+	log.Info("Updating first and last names if needed")
+	var wg sync.WaitGroup
+	wg.Add(2)
 	go websites.UpdateLastNames(&wg)
 	go websites.UpdateFirstNames(&wg)
 	//wait for the first update to complete, then proceed
@@ -48,6 +56,7 @@ func mainLogic() {
 }
 
 func updateLadiesRoutine(wg *sync.WaitGroup) {
+	log.Info("Starting update ladies routine")
 	websites.UpdateLadies()
 	wg.Done()
 	for {
@@ -57,6 +66,7 @@ func updateLadiesRoutine(wg *sync.WaitGroup) {
 }
 
 func sendOrdersRoutine() {
+	log.Info("Starting send orders routine")
 	for {
 		sleepAtNight()
 		target.OrderItem()
@@ -68,12 +78,14 @@ func sendOrdersRoutine() {
 }
 
 func manualOrdersRoutine() {
+	log.Info("Starting manual orders routine")
 	for {
 		target.ExecuteManualOrder()
 		time.Sleep(sendManualOrderRefreshInterval)
 	}
 }
 
+// TODO: test this
 func sleepAtNight() {
 	loc, _ := time.LoadLocation("Local")
 	year, month, day := time.Now().In(loc).Date()
@@ -84,9 +96,11 @@ func sleepAtNight() {
 	endTime := midnight.Add(jobEnd)
 
 	if currentTime.Before(startTime) {
+		log.Info("Beyond work hours, sleeping")
 		sleepDuration := startTime.Sub(currentTime)
 		time.Sleep(sleepDuration)
 	} else if currentTime.After(endTime) {
+		log.Info("Beyond work hours, sleeping")
 		sleepDuration := startTime.Add(time.Hour * 24).Sub(currentTime)
 		time.Sleep(sleepDuration)
 	}

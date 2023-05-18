@@ -2,6 +2,7 @@ package websites
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
@@ -12,6 +13,7 @@ const lastNamesUrl = "https://surnam.es/moldova"
 
 func UpdateLastNames(wg *sync.WaitGroup) {
 	if dao.IsTableEmpty(&dto.LastName{}) {
+		log.Info("Last names table empty, updating")
 		names := fetchLastNames()
 		dao.Insert(&names)
 	}
@@ -21,7 +23,7 @@ func UpdateLastNames(wg *sync.WaitGroup) {
 func fetchLastNames() (dtos []dto.LastName) {
 	lastNames := web.Fetch(lastNamesUrl, false).Find("ol.row").Find("a")
 	lastNames.Each(func(_ int, name *goquery.Selection) {
-		dtos = append(dtos, dto.LastName{name.Text(), 0})
+		dtos = append(dtos, dto.LastName{LastName: name.Text()})
 	})
 	return dtos
 }
