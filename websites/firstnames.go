@@ -9,19 +9,17 @@ import (
 	"sync"
 )
 
-const firstNamesUrl = "https://forebears.io/moldova/forenames"
-
-func UpdateFirstNames(wg *sync.WaitGroup) {
+func UpdateFirstNamesRoutine(wg *sync.WaitGroup, firstNamesUrl string) {
 	log.Info("Updating first names if needed")
 	if dao.IsTableEmpty(&dto.FirstName{}) {
 		log.Info("First names table empty, updating")
-		names := fetchFirstNames()
+		names := fetchFirstNames(firstNamesUrl)
 		dao.Insert(&names)
 	}
 	wg.Done()
 }
 
-func fetchFirstNames() (dtos []dto.FirstName) {
+func fetchFirstNames(firstNamesUrl string) (dtos []dto.FirstName) {
 	page := web.GetUrl(firstNamesUrl, false).Find("tbody")
 	femaleNames := page.Find("div.f").Parent().Next().Children()
 

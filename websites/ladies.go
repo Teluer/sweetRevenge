@@ -13,22 +13,20 @@ import (
 	"time"
 )
 
-const baseUrl = "https://999.md"
-
 // TODO: fetch other sections too
 // const ladiesUrl = "https://999.md/ru/list/tourism-leisure-and-entertainment/massage"
-const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
 
-func UpdateLadies() {
+func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
 	log.Info("Ladies update triggered")
-	ladies := getLadies()
+	ladies := getLadies(ladiesBaseUrl, ladiesUrls)
 	log.Info(fmt.Sprintf("Found %d ladies", len(ladies)))
 	dao.SaveNewLadies(ladies)
 }
 
-func getLadies() (ladies []dto.Lady) {
+func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
 	var urls []string
-	currentUrl := ladiesUrl
+	//TODO: loop through all options
+	currentUrl := ladiesUrls[0]
 	pageNumber := 1
 	for {
 		log.Info("Fetching lady list from " + currentUrl)
@@ -41,12 +39,12 @@ func getLadies() (ladies []dto.Lady) {
 			break
 		}
 		pageNumber++
-		currentUrl = ladiesUrl + "?page=" + strconv.Itoa(pageNumber)
+		currentUrl = ladiesUrls[0] + "?page=" + strconv.Itoa(pageNumber)
 	}
 
 	//send all requests consecutively to avoid getting blocked
 	for _, url := range urls {
-		url = baseUrl + url
+		url = ladiesBaseUrl + url
 		request := getRequestWithPopupBypass(url)
 		ad := web.GetRequest(request, true)
 		lady := getLady(ad)

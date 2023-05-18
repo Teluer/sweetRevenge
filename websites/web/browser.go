@@ -11,7 +11,7 @@ func SendRequest(req *http.Request, sameSession bool) *http.Response {
 	if sameSession {
 		return currentSession.anonymousRequest(req)
 	} else {
-		return openNewSession(proxyAddr).anonymousRequest(req)
+		return openNewSession().anonymousRequest(req)
 	}
 }
 
@@ -19,7 +19,7 @@ func GetUrl(url string, sameSession bool) *goquery.Document {
 	if sameSession {
 		return extractDocumentFromResponse(currentSession.getAnonymously(url))
 	} else {
-		return extractDocumentFromResponse(openNewSession(proxyAddr).getAnonymously(url))
+		return extractDocumentFromResponse(openNewSession().getAnonymously(url))
 	}
 }
 
@@ -31,7 +31,7 @@ func FetchCookies(url string, sameSession bool) []*http.Cookie {
 	if sameSession {
 		return currentSession.getAnonymously(url).Cookies()
 	} else {
-		return openNewSession(proxyAddr).getAnonymously(url).Cookies()
+		return openNewSession().getAnonymously(url).Cookies()
 	}
 }
 

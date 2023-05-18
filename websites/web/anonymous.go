@@ -15,7 +15,11 @@ const proxyAddr = "localhost:1080"
 
 var currentSession *TorSession
 
-func openNewSession(proxyAddr string) *TorSession {
+func init() {
+	openNewSession()
+}
+
+func openNewSession() *TorSession {
 	log.Info("Opening TOR session")
 	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
 	if err != nil {

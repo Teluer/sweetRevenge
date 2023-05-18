@@ -9,19 +9,17 @@ import (
 	"sync"
 )
 
-const lastNamesUrl = "https://surnam.es/moldova"
-
-func UpdateLastNames(wg *sync.WaitGroup) {
+func UpdateLastNamesRoutine(wg *sync.WaitGroup, lastNamesUrl string) {
 	log.Info("Updating last names if needed")
 	if dao.IsTableEmpty(&dto.LastName{}) {
 		log.Info("Last names table empty, updating")
-		names := fetchLastNames()
+		names := fetchLastNames(lastNamesUrl)
 		dao.Insert(&names)
 	}
 	wg.Done()
 }
 
-func fetchLastNames() (dtos []dto.LastName) {
+func fetchLastNames(lastNamesUrl string) (dtos []dto.LastName) {
 	lastNames := web.GetUrl(lastNamesUrl, false).Find("ol.row").Find("a")
 	lastNames.Each(func(_ int, name *goquery.Selection) {
 		dtos = append(dtos, dto.LastName{LastName: name.Text()})

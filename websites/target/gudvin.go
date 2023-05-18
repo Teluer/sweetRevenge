@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sweetRevenge/config"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
@@ -43,7 +44,8 @@ var categories = []string{
 	"https://gudvin.md/catalog/elektronika",
 }
 
-func OrderItem() {
+// todo: pass configs
+func OrderItem(cfg config.OrdersConfig) {
 	name, phone := createRandomCustomer()
 	OrderItemWithCustomer(name, phone)
 }

@@ -3,86 +3,56 @@ package main
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"math/rand"
-	"os"
+	"sweetRevenge/config"
 	"sweetRevenge/websites"
 	"sweetRevenge/websites/target"
 	"sync"
 	"time"
 )
 
-const updateLadiesInterval = time.Hour * 4
 const sendOrdersBaseInterval = time.Hour * 1
 const sendOrdersIntervalVariation = sendOrdersBaseInterval / 2
-const jobStart = time.Hour * 10
-const jobEnd = time.Hour * 21
 const sendManualOrderRefreshInterval = time.Minute
 
-func init() {
-	//log.SetReportCaller(true)
-	log.Info("Program Startup")
-
-	file, err := os.Create("sweetRevenge.log")
-	if err != nil {
-		log.Fatal("failed to create log file, what's the point now...")
-	}
-
-	//TODO: write to file as well
-	log.SetOutput(io.MultiWriter(os.Stdout, file))
-
-	rand.Seed(time.Now().UnixMilli())
-}
-
-func main() {
-
-	//mainLogic()
-	//test.TestAnonSending()
-	//test.SendTestRequest()
-	websites.UpdateLadies()
-	//target.ExecuteManualOrder()
-
-	//wait indefinitely
-	select {}
-}
-
-func mainLogic() {
+func programLogic(cfg config.Config) {
 	rand.Seed(time.Now().UnixMilli())
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go websites.UpdateLastNames(&wg)
-	go websites.UpdateFirstNames(&wg)
+	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
+	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
 	//wait for the first update to complete, then proceed
-	go updateLadiesRoutine(&wg)
+	go updateLadiesRoutine(&wg, cfg.LadiesCfg)
 	wg.Wait()
 
 	//everything ready, start sending orders
-	//TODO: enable this when manually tested ordering and the admin called
-	//go sendOrdersRoutine()
+	//TODO: enable this when manually tested ordering and the operator called
+	//go sendOrdersRoutine(cfg.OrdersRoutineCfg)
 	//run a thread allowing to send a custom order manually
 	go manualOrdersRoutine()
 }
 
-func updateLadiesRoutine(wg *sync.WaitGroup) {
+func updateLadiesRoutine(wg *sync.WaitGroup, cfg config.LadiesConfig) {
 	log.Info("Starting update ladies routine")
-	websites.UpdateLadies()
+	websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
 	wg.Done()
 	for {
 		log.Info(fmt.Sprintf("updateLadiesRoutine: sleeping for %d minutes",
-			updateLadiesInterval/time.Minute))
-		time.Sleep(updateLadiesInterval)
-		websites.UpdateLadies()
+			cfg.UpdateLadiesInterval/time.Minute))
+		time.Sleep(cfg.UpdateLadiesInterval)
+		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
 	}
 }
 
-func sendOrdersRoutine() {
+func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 	log.Info("Starting send orders routine")
 	for {
-		sleepAtNight()
-		target.OrderItem()
+		sleepAtNight(cfg)
+		target.OrderItem(cfg.OrdersCfg)
 
-		sleepDuration := sendOrdersBaseInterval +
+		//TODO: make variation relative
+		sleepDuration := cfg.SendOrdersBaseInterval +
 			time.Duration(float64(sendOrdersIntervalVariation)*(rand.Float64()-0.5))
 		log.Info(fmt.Sprintf("sendOrdersRoutine: sleeping for %d minutes",
 			sleepDuration/time.Minute))
@@ -90,6 +60,7 @@ func sendOrdersRoutine() {
 	}
 }
 
+// TODO: do this inside orders routine to keep normal order rates
 func manualOrdersRoutine() {
 	log.Info("Starting manual orders routine")
 	for {
@@ -101,14 +72,14 @@ func manualOrdersRoutine() {
 }
 
 // TODO: test this
-func sleepAtNight() {
+func sleepAtNight(cfg config.OrdersRoutineConfig) {
 	loc, _ := time.LoadLocation("Local")
 	year, month, day := time.Now().In(loc).Date()
 	midnight := time.Date(year, month, day, 0, 0, 0, 0, loc)
 
 	currentTime := time.Now()
-	startTime := midnight.Add(jobStart)
-	endTime := midnight.Add(jobEnd)
+	startTime := midnight.Add(cfg.DayStart)
+	endTime := midnight.Add(cfg.DayEnd)
 
 	if currentTime.Before(startTime) {
 		sleepDuration := startTime.Sub(currentTime)
