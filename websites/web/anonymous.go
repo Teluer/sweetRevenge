@@ -11,7 +11,11 @@ type TorSession struct {
 	client *http.Client
 }
 
-func openSession(proxyAddr string) *TorSession {
+const proxyAddr = "localhost:1080"
+
+var currentSession *TorSession
+
+func openNewSession(proxyAddr string) *TorSession {
 	log.Info("Opening TOR session")
 	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
 	if err != nil {
@@ -26,6 +30,7 @@ func openSession(proxyAddr string) *TorSession {
 		},
 	}
 	log.Info("Established TOR session successfully")
+	currentSession = &ts
 	return &ts
 }
 

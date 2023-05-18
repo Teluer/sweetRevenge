@@ -140,7 +140,7 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 
 func getCookies(link string) []*http.Cookie {
 	log.Info("Fetching cookies to build order request")
-	cookies := web.FetchCookies(link, true)
+	cookies := web.FetchCookies(link)
 	return cookies
 }
 
@@ -149,7 +149,7 @@ func findRandomItem() (id string, link string) {
 
 	log.Info("Fetching random item from category " + randomCategory)
 
-	page := web.GetUrl(randomCategory, true)
+	page := web.GetUrl(randomCategory)
 
 	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())

@@ -34,7 +34,7 @@ func getLadies() (ladies []dto.Lady) {
 	pageNumber := 1
 	for {
 		log.Info("Fetching lady list from " + currentUrl)
-		page := web.GetUrl(currentUrl, false) // start a goroutine
+		page := web.GetUrl(currentUrl) // start a goroutine
 		ladyUrls, hasNextPage := parseLadiesList(page)
 		if len(ladyUrls) > 0 {
 			urls = append(urls, ladyUrls...)
@@ -50,7 +50,7 @@ func getLadies() (ladies []dto.Lady) {
 	for _, url := range urls {
 		url = baseUrl + url
 		request := getRequestWithPopupBypass(url)
-		ad := web.GetRequest(request, false)
+		ad := web.GetRequest(request)
 		lady := getLady(ad)
 		if lady.Phone != "" {
 			ladies = append(ladies, lady)

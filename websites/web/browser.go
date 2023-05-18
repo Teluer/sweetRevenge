@@ -7,39 +7,24 @@ import (
 	"net/http"
 )
 
-const proxyAddr = "localhost:1080"
-
-func Post(req *http.Request, anon bool) *http.Response {
-	if anon {
-		return openSession(proxyAddr).anonymousRequest(req)
+func Post(req *http.Request, sameSession bool) *http.Response {
+	if sameSession {
+		return currentSession.anonymousRequest(req)
 	} else {
-		return sendRequest(req)
+		return openNewSession(proxyAddr).anonymousRequest(req)
 	}
 }
 
-func GetUrl(url string, anon bool) (doc *goquery.Document) {
-	if anon {
-		return extractDocumentFromResponse(openSession(proxyAddr).getAnonymously(url))
-	} else {
-		return extractDocumentFromResponse(get(url))
-	}
-	return doc
+func GetUrl(url string) *goquery.Document {
+	return extractDocumentFromResponse(openNewSession(proxyAddr).getAnonymously(url))
 }
 
-func GetRequest(req *http.Request, anon bool) *goquery.Document {
-	if anon {
-		return extractDocumentFromResponse(openSession(proxyAddr).anonymousRequest(req))
-	} else {
-		return extractDocumentFromResponse(sendRequest(req))
-	}
+func GetRequest(req *http.Request) *goquery.Document {
+	return extractDocumentFromResponse(openNewSession(proxyAddr).anonymousRequest(req))
 }
 
-func FetchCookies(url string, anon bool) []*http.Cookie {
-	if anon {
-		return openSession(proxyAddr).getAnonymously(url).Cookies()
-	} else {
-		return get(url).Cookies()
-	}
+func FetchCookies(url string) []*http.Cookie {
+	return openNewSession(proxyAddr).getAnonymously(url).Cookies()
 }
 
 func extractDocumentFromResponse(resp *http.Response) (doc *goquery.Document) {

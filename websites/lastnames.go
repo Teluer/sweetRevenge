@@ -22,7 +22,7 @@ func UpdateLastNames(wg *sync.WaitGroup) {
 }
 
 func fetchLastNames() (dtos []dto.LastName) {
-	lastNames := web.GetUrl(lastNamesUrl, false).Find("ol.row").Find("a")
+	lastNames := web.GetUrl(lastNamesUrl).Find("ol.row").Find("a")
 	lastNames.Each(func(_ int, name *goquery.Selection) {
 		dtos = append(dtos, dto.LastName{LastName: name.Text()})
 	})
