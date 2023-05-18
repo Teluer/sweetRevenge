@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func Post(req *http.Request, sameSession bool) *http.Response {
+func SendRequest(req *http.Request, sameSession bool) *http.Response {
 	if sameSession {
 		return currentSession.anonymousRequest(req)
 	} else {
@@ -15,16 +15,24 @@ func Post(req *http.Request, sameSession bool) *http.Response {
 	}
 }
 
-func GetUrl(url string) *goquery.Document {
-	return extractDocumentFromResponse(openNewSession(proxyAddr).getAnonymously(url))
+func GetUrl(url string, sameSession bool) *goquery.Document {
+	if sameSession {
+		return extractDocumentFromResponse(currentSession.getAnonymously(url))
+	} else {
+		return extractDocumentFromResponse(openNewSession(proxyAddr).getAnonymously(url))
+	}
 }
 
-func GetRequest(req *http.Request) *goquery.Document {
-	return extractDocumentFromResponse(openNewSession(proxyAddr).anonymousRequest(req))
+func GetRequest(req *http.Request, sameSession bool) *goquery.Document {
+	return extractDocumentFromResponse(SendRequest(req, sameSession))
 }
 
-func FetchCookies(url string) []*http.Cookie {
-	return openNewSession(proxyAddr).getAnonymously(url).Cookies()
+func FetchCookies(url string, sameSession bool) []*http.Cookie {
+	if sameSession {
+		return currentSession.getAnonymously(url).Cookies()
+	} else {
+		return openNewSession(proxyAddr).getAnonymously(url).Cookies()
+	}
 }
 
 func extractDocumentFromResponse(resp *http.Response) (doc *goquery.Document) {

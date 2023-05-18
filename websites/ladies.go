@@ -18,8 +18,6 @@ const baseUrl = "https://999.md"
 // TODO: fetch other sections too
 // const ladiesUrl = "https://999.md/ru/list/tourism-leisure-and-entertainment/massage"
 const ladiesUrl = "https://999.md/ru/list/dating-and-greetings/i-need-a-man"
-const ladiesPageSleepTime = time.Second * 2
-const ladiesAdSleepTime = time.Second / 2
 
 func UpdateLadies() {
 	log.Info("Ladies update triggered")
@@ -34,7 +32,7 @@ func getLadies() (ladies []dto.Lady) {
 	pageNumber := 1
 	for {
 		log.Info("Fetching lady list from " + currentUrl)
-		page := web.GetUrl(currentUrl) // start a goroutine
+		page := web.GetUrl(currentUrl, true) // start a goroutine
 		ladyUrls, hasNextPage := parseLadiesList(page)
 		if len(ladyUrls) > 0 {
 			urls = append(urls, ladyUrls...)
@@ -42,20 +40,19 @@ func getLadies() (ladies []dto.Lady) {
 		if !hasNextPage {
 			break
 		}
-		time.Sleep(ladiesPageSleepTime)
 		pageNumber++
 		currentUrl = ladiesUrl + "?page=" + strconv.Itoa(pageNumber)
 	}
 
+	//send all requests consecutively to avoid getting blocked
 	for _, url := range urls {
 		url = baseUrl + url
 		request := getRequestWithPopupBypass(url)
-		ad := web.GetRequest(request)
+		ad := web.GetRequest(request, true)
 		lady := getLady(ad)
 		if lady.Phone != "" {
 			ladies = append(ladies, lady)
 		}
-		time.Sleep(ladiesAdSleepTime)
 	}
 
 	//remove duplicated phones

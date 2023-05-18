@@ -40,29 +40,29 @@ func (ts TorSession) anonymousRequest(req *http.Request) *http.Response {
 		panic("need to init client first!")
 	}
 
-	log.Info("Sending anonymous POST request to url:" + req.URL.String())
+	log.Info("Sending anonymous request to url:" + req.URL.String())
 	resp, err := ts.client.Do(req)
 	if err != nil {
-		panic(fmt.Sprintf("failed to send post request %v", err))
+		panic(fmt.Sprintf("failed to send anonymous request %v", err))
 	}
-	log.Info("Anonymous POST returned status " + resp.Status)
+	log.Info("Anonymous request returned status " + resp.Status)
 
 	return resp
 }
 
-func (ts TorSession) getAnonymously(target string) *http.Response {
+func (ts TorSession) getAnonymously(url string) *http.Response {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")
 	}
 
-	log.Info("Sending anonymous GET to url:" + target)
-	resp, err := ts.client.Get(target)
+	log.Info("Sending anonymous GET to url:" + url)
+	resp, err := ts.client.Get(url)
 	if err != nil {
 		log.WithError(err).Error("Anonymous get request failed")
 		panic(err)
 	}
-	log.Info("Received response for anonymous GET to url:" + target)
+	log.Info("Received response for anonymous GET to url:" + url)
 
 	return resp
 }

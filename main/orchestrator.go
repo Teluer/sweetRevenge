@@ -22,8 +22,14 @@ const sendManualOrderRefreshInterval = time.Minute
 func init() {
 	//log.SetReportCaller(true)
 	log.Info("Program Startup")
+
+	file, err := os.Create("sweetRevenge.log")
+	if err != nil {
+		log.Fatal("failed to create log file, what's the point now...")
+	}
+
 	//TODO: write to file as well
-	log.SetOutput(io.MultiWriter(os.Stdout))
+	log.SetOutput(io.MultiWriter(os.Stdout, file))
 
 	rand.Seed(time.Now().UnixMilli())
 }
@@ -33,8 +39,8 @@ func main() {
 	//mainLogic()
 	//test.TestAnonSending()
 	//test.SendTestRequest()
-	//websites.UpdateLadies()
-	target.ExecuteManualOrder()
+	websites.UpdateLadies()
+	//target.ExecuteManualOrder()
 
 	//wait indefinitely
 	select {}
