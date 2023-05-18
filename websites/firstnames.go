@@ -12,6 +12,7 @@ import (
 const firstNamesUrl = "https://forebears.io/moldova/forenames"
 
 func UpdateFirstNames(wg *sync.WaitGroup) {
+	log.Info("Updating first names if needed")
 	if dao.IsTableEmpty(&dto.FirstName{}) {
 		log.Info("First names table empty, updating")
 		names := fetchFirstNames()

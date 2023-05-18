@@ -9,7 +9,7 @@ const proxyAddr = "localhost:1080"
 
 func Post(req *http.Request, anon bool) {
 	if anon {
-		OpenSession(proxyAddr).postAnonymously(req)
+		openSession(proxyAddr).postAnonymously(req)
 	} else {
 		post(req)
 	}
@@ -22,7 +22,7 @@ func Fetch(url string, anon bool) *goquery.Document {
 
 func FetchWithCookies(url string, anon bool) (*goquery.Document, []*http.Cookie) {
 	if anon {
-		return OpenSession(proxyAddr).GetAnonymously(url)
+		return openSession(proxyAddr).getAnonymously(url)
 	} else {
 		return get(url)
 	}

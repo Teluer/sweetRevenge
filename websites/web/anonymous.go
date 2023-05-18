@@ -12,7 +12,7 @@ type TorSession struct {
 	client *http.Client
 }
 
-func OpenSession(proxyAddr string) *TorSession {
+func openSession(proxyAddr string) *TorSession {
 	log.Info("Opening TOR session")
 	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
 	if err != nil {
@@ -43,7 +43,7 @@ func (ts TorSession) postAnonymously(req *http.Request) {
 	log.Info("Anonymous POST returned status " + resp.Status)
 }
 
-func (ts TorSession) GetAnonymously(target string) (*goquery.Document, []*http.Cookie) {
+func (ts TorSession) getAnonymously(target string) (*goquery.Document, []*http.Cookie) {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")

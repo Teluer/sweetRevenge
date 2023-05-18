@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"sweetRevenge/websites/target"
-	"sweetRevenge/websites/web"
 	"sync"
 )
 
@@ -54,14 +53,14 @@ func TestAnonSending() {
 	wg.Wait()
 }
 
-func SendTestRequest() {
-	web.OpenSession("localhost:1080").GetAnonymously(testUrl)
-}
-
-func TestRandomCustomers() {
-	for i := 0; i < 20; i++ {
-		name, phone := target.CreateRandomCustomer()
-		fmt.Println(name, "  ", phone)
-	}
-
-}
+//func SendTestRequest() {
+//	web.openSession("localhost:1080").getAnonymously(testUrl)
+//}
+//
+//func TestRandomCustomers() {
+//	for i := 0; i < 20; i++ {
+//		name, phone := target.createRandomCustomer()
+//		fmt.Println(name, "  ", phone)
+//	}
+//
+//}

@@ -41,8 +41,7 @@ func getLadies() (ladies []dto.Lady) {
 		if len(ladyUrls) > 0 {
 			urls = append(urls, ladyUrls...)
 		}
-		//TODO: remove test condition
-		if !hasNextPage || true {
+		if !hasNextPage {
 			break
 		}
 		time.Sleep(ladiesPageSleepTime)
@@ -50,7 +49,6 @@ func getLadies() (ladies []dto.Lady) {
 		currentUrl = ladiesUrl + "?page=" + strconv.Itoa(pageNumber)
 	}
 
-	//TODO: use goroutines?
 	for _, url := range urls {
 		url = baseUrl + url
 		ad := web.Fetch(url, false)

@@ -12,6 +12,7 @@ import (
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
 	"sweetRevenge/websites/web"
+	"time"
 )
 
 type OrderBody struct {
@@ -39,10 +40,11 @@ var categories = []string{
 	"https://gudvin.md/catalog/melkaya-bytovaya-tehnika",
 	"https://gudvin.md/catalog/tovary-dlya-kuhni",
 	"https://gudvin.md/catalog/turizm-sport-i-otdyh",
+	"https://gudvin.md/catalog/elektronika",
 }
 
 func OrderItem() {
-	name, phone := CreateRandomCustomer()
+	name, phone := createRandomCustomer()
 	OrderItemWithCustomer(name, phone)
 }
 
@@ -51,8 +53,6 @@ func OrderItemWithCustomer(name, phone string) {
 }
 
 func OrderItemWithCustomerAndTarget(targetUrl, name, phone string) {
-	//TODO: remove println
-	fmt.Println(name, phone)
 	itemId, link := findRandomItem()
 	OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link)
 }
@@ -65,6 +65,7 @@ func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId
 	log.Info("Got cookies: ", cookies)
 	req := prepareOrderPostRequest(targetUrl, name, phone, itemId, link, cookies)
 	web.Post(req, true)
+	saveOrderHistory(name, phone, itemId)
 	log.Info("Sent order successfully")
 }
 
@@ -74,7 +75,6 @@ func ExecuteManualOrder() {
 	var manualOrder dto.ManualOrder
 	dao.FindFirstAndDelete(&manualOrder)
 
-	//if not found
 	if manualOrder.Phone == "" {
 		log.Info("Manual orders not found, doing nothing")
 		return
@@ -164,13 +164,11 @@ func findRandomItem() (id string, link string) {
 	})
 
 	link = baselink + link
-
 	log.Info("Will order the following item: " + id + " " + link)
-
 	return id, link
 }
 
-func CreateRandomCustomer() (name string, phone string) {
+func createRandomCustomer() (name string, phone string) {
 	const firstNameOnlyIncidence = 0.2
 	const firstNameAfterLastNameIncidence = 0.6
 	const nameLowerCaseIncidence = 0.08
@@ -205,4 +203,15 @@ func CreateRandomCustomer() (name string, phone string) {
 
 func evaluateProbability(probability float64) bool {
 	return rand.Float64() < probability
+}
+
+func saveOrderHistory(name, phone, itemId string) {
+	var record = dto.OrderHistory{
+		Phone:         phone,
+		Name:          name,
+		ItemId:        itemId,
+		OrderDateTime: time.Now(),
+	}
+
+	dao.Insert(&record)
 }

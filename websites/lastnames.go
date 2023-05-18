@@ -12,6 +12,7 @@ import (
 const lastNamesUrl = "https://surnam.es/moldova"
 
 func UpdateLastNames(wg *sync.WaitGroup) {
+	log.Info("Updating last names if needed")
 	if dao.IsTableEmpty(&dto.LastName{}) {
 		log.Info("Last names table empty, updating")
 		names := fetchLastNames()

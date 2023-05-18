@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
@@ -23,14 +24,17 @@ func init() {
 	log.Info("Program Startup")
 	//TODO: write to file as well
 	log.SetOutput(io.MultiWriter(os.Stdout))
+
+	rand.Seed(time.Now().UnixMilli())
 }
 
 func main() {
 
-	mainLogic()
+	//mainLogic()
 	//test.TestAnonSending()
 	//test.SendTestRequest()
 	//websites.UpdateLadies()
+	target.ExecuteManualOrder()
 
 	//wait indefinitely
 	select {}
@@ -39,7 +43,6 @@ func main() {
 func mainLogic() {
 	rand.Seed(time.Now().UnixMilli())
 
-	log.Info("Updating first and last names if needed")
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go websites.UpdateLastNames(&wg)
@@ -60,6 +63,8 @@ func updateLadiesRoutine(wg *sync.WaitGroup) {
 	websites.UpdateLadies()
 	wg.Done()
 	for {
+		log.Info(fmt.Sprintf("updateLadiesRoutine: sleeping for %d minutes",
+			updateLadiesInterval/time.Minute))
 		time.Sleep(updateLadiesInterval)
 		websites.UpdateLadies()
 	}
@@ -71,8 +76,10 @@ func sendOrdersRoutine() {
 		sleepAtNight()
 		target.OrderItem()
 
-		sleepDuration := time.Duration(float64(sendOrdersIntervalVariation) *
-			(rand.Float64() - 0.5))
+		sleepDuration := sendOrdersBaseInterval +
+			time.Duration(float64(sendOrdersIntervalVariation)*(rand.Float64()-0.5))
+		log.Info(fmt.Sprintf("sendOrdersRoutine: sleeping for %d minutes",
+			sleepDuration/time.Minute))
 		time.Sleep(sleepDuration)
 	}
 }
@@ -81,6 +88,8 @@ func manualOrdersRoutine() {
 	log.Info("Starting manual orders routine")
 	for {
 		target.ExecuteManualOrder()
+		log.Info(fmt.Sprintf("manualOrdersRoutine: sleeping for %d minutes",
+			sendManualOrderRefreshInterval/time.Minute))
 		time.Sleep(sendManualOrderRefreshInterval)
 	}
 }
@@ -96,12 +105,14 @@ func sleepAtNight() {
 	endTime := midnight.Add(jobEnd)
 
 	if currentTime.Before(startTime) {
-		log.Info("Beyond work hours, sleeping")
 		sleepDuration := startTime.Sub(currentTime)
+		log.Info("Beyond work hours, sleeping until " +
+			time.Now().Add(sleepDuration).Format("2006-01-02 15:04:05"))
 		time.Sleep(sleepDuration)
 	} else if currentTime.After(endTime) {
-		log.Info("Beyond work hours, sleeping")
 		sleepDuration := startTime.Add(time.Hour * 24).Sub(currentTime)
+		log.Info("Beyond work hours, sleeping until " +
+			time.Now().Add(sleepDuration).Format("2006-01-02 15:04:05"))
 		time.Sleep(sleepDuration)
 	}
 }
