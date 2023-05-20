@@ -32,7 +32,7 @@ func updateLadiesRoutine(cfg config.LadiesConfig) {
 	log.Info("Starting update ladies routine")
 	for {
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
-		log.Info("updateLadiesRoutine: sleeping for ", cfg.UpdateLadiesInterval/time.Minute, " minutes")
+		log.Info("updateLadiesRoutine: sleeping for ", int(cfg.UpdateLadiesInterval/time.Minute), " minutes")
 		time.Sleep(cfg.UpdateLadiesInterval)
 	}
 }
@@ -52,7 +52,7 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 		jobDuration := time.Now().Sub(jobStart)
 
 		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
-		log.Info("sendOrdersRoutine: sleeping for ", sleepDuration/time.Minute, " minutes")
+		log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
 		time.Sleep(sleepDuration)
 	}
 }

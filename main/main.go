@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"sweetRevenge/config"
+	"sweetRevenge/db/dao"
 	"time"
 )
 
@@ -22,6 +23,8 @@ func init() {
 
 func main() {
 	log.Info("Program Startup")
+
+	dao.AutoMigrateAll()
 
 	p := properties.MustLoadFile("config.properties", properties.UTF8)
 	var cfg config.Config

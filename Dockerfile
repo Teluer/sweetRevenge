@@ -15,30 +15,30 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o myapp .
+RUN go build -o sweetRevenge .
 
 # Start a new stage
 FROM mysql:8
 
 # Set the root password for the MySQL database
-ENV MYSQL_ROOT_PASSWORD=mysecretpassword
+ENV MYSQL_ROOT_PASSWORD=collection
 
 # Create a new database and user
-ENV MYSQL_DATABASE=mydb
-ENV MYSQL_USER=myuser
-ENV MYSQL_PASSWORD=mypassword
+ENV MYSQL_DATABASE=sweet
+ENV MYSQL_USER=goblin
+ENV MYSQL_PASSWORD=password1!
 
 # Copy the built Go application from the previous stage
-COPY --from=builder /app/myapp /usr/local/bin/myapp
+COPY --from=builder /app/sweetRevenge /usr/local/bin/sweetRevenge
 
 # Copy the Tor binary
-COPY tor /usr/local/bin/tor
+COPY Tor/ /usr/local/bin/Tor
 
 # Copy the entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Expose the port on which your Go application listens
-EXPOSE 8080
+#EXPOSE 8080
 
 # Set the entrypoint script as executable
 RUN chmod +x /usr/local/bin/entrypoint.sh

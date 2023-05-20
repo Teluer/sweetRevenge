@@ -3,9 +3,9 @@ package dto
 import "time"
 
 type OrderHistory struct {
-	Name          string
-	Phone         string
-	ItemId        string
+	Name          string `gorm:"type:varchar(100)"`
+	Phone         string `gorm:"type:varchar(30)"`
+	ItemId        string `gorm:"type:varchar(50)"`
 	OrderDateTime time.Time
 }
 

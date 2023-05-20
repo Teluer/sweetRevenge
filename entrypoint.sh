@@ -7,4 +7,4 @@ tor &
 service mysql start
 
 # Run your Go application
-myapp
+sweetRevenge

@@ -24,6 +24,15 @@ func open() *GormDao {
 	return &GormDao{db}
 }
 
+func AutoMigrateAll() {
+	dao.db.AutoMigrate(
+		&dto.FirstName{},
+		&dto.LastName{},
+		&dto.Lady{},
+		&dto.ManualOrder{},
+		&dto.OrderHistory{})
+}
+
 func Insert(obj any) {
 	log.WithField("obj", obj).Debug("Inserting data")
 	dao.db.Create(obj)
@@ -39,11 +48,6 @@ func IsTableEmpty(obj any) bool {
 }
 
 // TODO: replace with MQ?
-func FindFirstAndDelete(obj *dto.ManualOrder) {
-	log.Debug("Getting manual order")
-
+func FindFirst(obj any) {
 	dao.db.Limit(1).Find(obj)
-	if obj.Phone != "" {
-		dao.db.Where("phone = ?", obj.Phone).Delete(obj)
-	}
 }

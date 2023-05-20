@@ -9,11 +9,14 @@ import (
 	"strings"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
+	"sweetRevenge/util"
 	"sweetRevenge/websites/web"
 	"time"
 )
 
 func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
+	defer util.RecoverAndLogError("LadiesUpdate")
+
 	log.Info("Ladies update triggered")
 	ladies := getLadies(ladiesBaseUrl, ladiesUrls)
 	log.Info(fmt.Sprintf("Found %d ladies", len(ladies)))

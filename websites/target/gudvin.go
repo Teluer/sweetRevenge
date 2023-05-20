@@ -12,6 +12,7 @@ import (
 	"sweetRevenge/config"
 	"sweetRevenge/db/dao"
 	"sweetRevenge/db/dto"
+	"sweetRevenge/util"
 	"sweetRevenge/websites/web"
 	"time"
 )
@@ -42,6 +43,7 @@ var categories = []string{
 
 // todo: pass configs
 func OrderItem(cfg config.OrdersConfig) {
+	defer util.RecoverAndLogError("Orders")
 	//check manually prepared orders, if there are no manual orders then make random order
 	if !ExecuteManualOrder() {
 		log.Info("Sending random order")
@@ -90,7 +92,7 @@ func ExecuteManualOrder() bool {
 	log.Info("Checking if should send manual orders")
 
 	var manualOrder dto.ManualOrder
-	dao.FindFirstAndDelete(&manualOrder)
+	dao.FindFirst(&manualOrder)
 
 	if manualOrder.Phone == "" {
 		log.Info("Manual orders not found, doing nothing")
@@ -106,6 +108,7 @@ func ExecuteManualOrder() bool {
 			manualOrder.Name, manualOrder.Phone, manualOrder.Target))
 		OrderItemWithCustomerAndTarget(manualOrder.Target, manualOrder.Name, manualOrder.Phone)
 	}
+	dao.Delete(manualOrder)
 	return true
 }
 
