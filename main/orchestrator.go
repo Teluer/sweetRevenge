@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"sweetRevenge/config"
+	"sweetRevenge/db/dao"
+	"sweetRevenge/db/dto"
 	"sweetRevenge/websites"
 	"sweetRevenge/websites/target"
 	"sync"
@@ -14,27 +15,25 @@ import (
 func programLogic(cfg config.Config) {
 	rand.Seed(time.Now().UnixMilli())
 
+	//wait for the first update to complete, then proceed with orders.
+	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
 	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
-	//wait for the first update to complete, then proceed
-	go updateLadiesRoutine(&wg, cfg.LadiesCfg)
 	wg.Wait()
+	go updateLadiesRoutine(cfg.LadiesCfg)
 
 	//everything ready, start sending orders
 	go sendOrdersRoutine(cfg.OrdersRoutineCfg)
 }
 
-func updateLadiesRoutine(wg *sync.WaitGroup, cfg config.LadiesConfig) {
+func updateLadiesRoutine(cfg config.LadiesConfig) {
 	log.Info("Starting update ladies routine")
-	websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
-	wg.Done()
 	for {
-		log.Info(fmt.Sprintf("updateLadiesRoutine: sleeping for %d minutes",
-			cfg.UpdateLadiesInterval/time.Minute))
-		time.Sleep(cfg.UpdateLadiesInterval)
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
+		log.Info("updateLadiesRoutine: sleeping for ", cfg.UpdateLadiesInterval/time.Minute, " minutes")
+		time.Sleep(cfg.UpdateLadiesInterval)
 	}
 }
 
@@ -42,13 +41,18 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 	log.Info("Starting send orders routine")
 	for {
 		sleepAtNight(cfg)
+		jobStart := time.Now()
 
-		target.OrderItem(cfg.OrdersCfg)
+		//is everything in place to make orders
+		readyToGo := !(dao.IsTableEmpty(&dto.FirstName{}) || dao.IsTableEmpty(&dto.LastName{}) || dao.IsTableEmpty(&dto.Lady{}))
+		if readyToGo {
+			target.OrderItem(cfg.OrdersCfg)
+		}
 
-		variationCoefficient := cfg.SendOrdersIntervalVariation*(rand.Float64()-0.5) + 1
-		sleepDuration := time.Duration(float64(cfg.SendOrdersBaseInterval) * variationCoefficient)
-		log.Info(fmt.Sprintf("sendOrdersRoutine: sleeping for %d minutes",
-			sleepDuration/time.Minute))
+		jobDuration := time.Now().Sub(jobStart)
+
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
+		log.Info("sendOrdersRoutine: sleeping for ", sleepDuration/time.Minute, " minutes")
 		time.Sleep(sleepDuration)
 	}
 }
