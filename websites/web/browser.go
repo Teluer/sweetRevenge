@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
@@ -14,57 +15,53 @@ func GetUnsafe(url string) *goquery.Document {
 		log.WithError(err).Error("Unsafe GET request failed")
 		panic(err)
 	}
+	defer resp.Body.Close()
 	log.Info("Got status", resp.Status, " to unsafe GET to url:", url)
 
-	return extractDocumentFromResponse(resp)
+	body, _ := io.ReadAll(resp.Body)
+	return extractDocumentFromResponseBody(body)
 }
 
 func SendRequest(req *http.Request, sameSession bool) (response *http.Response, body []byte) {
 	if sameSession {
-		response = currentSession.anonymousRequest(req)
+		return currentSession.anonymousRequest(req)
 	} else {
-		response = openNewSession().anonymousRequest(req)
+		return openNewSession().anonymousRequest(req)
 	}
-	return response, extractResponseBody(response)
 }
 
 func GetUrl(url string, sameSession bool) *goquery.Document {
+	var responseBody []byte
 	if sameSession {
-		return extractDocumentFromResponse(currentSession.getAnonymously(url))
+		_, responseBody = currentSession.getAnonymously(url)
 	} else {
-		return extractDocumentFromResponse(openNewSession().getAnonymously(url))
+		_, responseBody = openNewSession().getAnonymously(url)
 	}
+	return extractDocumentFromResponseBody(responseBody)
 }
 
 func GetRequest(req *http.Request, sameSession bool) *goquery.Document {
-	resp, _ := SendRequest(req, sameSession)
-	return extractDocumentFromResponse(resp)
+	_, body := SendRequest(req, sameSession)
+	return extractDocumentFromResponseBody(body)
 }
 
 func FetchCookies(url string, sameSession bool) []*http.Cookie {
 	var resp *http.Response
 	if sameSession {
-		resp = currentSession.getAnonymously(url)
+		resp, _ = currentSession.getAnonymously(url)
 	} else {
-		resp = openNewSession().getAnonymously(url)
+		resp, _ = openNewSession().getAnonymously(url)
 	}
-	resp.Body.Close()
 	return resp.Cookies()
 }
 
-func extractDocumentFromResponse(resp *http.Response) *goquery.Document {
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+func extractDocumentFromResponseBody(body []byte) *goquery.Document {
+	reader := bytes.NewReader(body)
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
 		log.WithError(err).Error("Failed to parse response body")
 		panic(fmt.Sprintf("while parsing response body: %v", err))
 	}
-	resp.Body.Close() // don't leak resources
-	return doc
-}
 
-func extractResponseBody(resp *http.Response) []byte {
-	//TODO: handle error
-	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	return body
+	return doc
 }

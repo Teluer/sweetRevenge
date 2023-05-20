@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/proxy"
+	"io"
 	"net/http"
 )
 
@@ -41,7 +42,7 @@ func openNewSession() *TorSession {
 	return &ts
 }
 
-func (ts TorSession) anonymousRequest(req *http.Request) *http.Response {
+func (ts TorSession) anonymousRequest(req *http.Request) (*http.Response, []byte) {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")
@@ -52,12 +53,14 @@ func (ts TorSession) anonymousRequest(req *http.Request) *http.Response {
 	if err != nil {
 		panic(fmt.Sprintf("failed to send anonymous request %v", err))
 	}
+	defer resp.Body.Close()
 	log.Info("Anonymous request returned status " + resp.Status)
 
-	return resp
+	body, _ := io.ReadAll(resp.Body)
+	return resp, body
 }
 
-func (ts TorSession) getAnonymously(url string) *http.Response {
+func (ts TorSession) getAnonymously(url string) (*http.Response, []byte) {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")
@@ -69,7 +72,10 @@ func (ts TorSession) getAnonymously(url string) *http.Response {
 		log.WithError(err).Error("Anonymous get request failed")
 		panic(err)
 	}
+	defer resp.Body.Close()
+
 	log.Info("Got status", resp.Status, " to anonymous GET to url:", url)
 
-	return resp
+	body, _ := io.ReadAll(resp.Body)
+	return resp, body
 }
