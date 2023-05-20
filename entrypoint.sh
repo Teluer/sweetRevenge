@@ -1,10 +1,7 @@
 #!/bin/bash
 
 # Start the Tor service
-tor &
-
-# Start the MySQL database
-service mysql start
+/usr/local/bin/tor/tor -f /usr/local/bin/torrc &> tor.log &
 
 # Run your Go application
 sweetRevenge
