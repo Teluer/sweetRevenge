@@ -32,6 +32,9 @@ func openNewSession() *TorSession {
 		Transport: &http.Transport{
 			Dial: dialer.Dial,
 		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return nil
+		},
 	}
 	log.Info("Established TOR session successfully")
 	currentSession = &ts
@@ -66,7 +69,7 @@ func (ts TorSession) getAnonymously(url string) *http.Response {
 		log.WithError(err).Error("Anonymous get request failed")
 		panic(err)
 	}
-	log.Info("Received response for anonymous GET to url:" + url)
+	log.Info("Got status", resp.Status, " to anonymous GET to url:", url)
 
 	return resp
 }

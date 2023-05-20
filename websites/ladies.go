@@ -13,9 +13,6 @@ import (
 	"time"
 )
 
-// TODO: fetch other sections too
-// const ladiesUrl = "https://999.md/ru/list/tourism-leisure-and-entertainment/massage"
-
 func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
 	log.Info("Ladies update triggered")
 	ladies := getLadies(ladiesBaseUrl, ladiesUrls)
@@ -25,21 +22,20 @@ func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
 
 func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
 	var urls []string
-	//TODO: loop through all options
-	currentUrl := ladiesUrls[0]
-	pageNumber := 1
-	for {
-		log.Info("Fetching lady list from " + currentUrl)
-		page := web.GetUrl(currentUrl, true) // start a goroutine
-		ladyUrls, hasNextPage := parseLadiesList(page)
-		if len(ladyUrls) > 0 {
-			urls = append(urls, ladyUrls...)
+	for _, ladyCategory := range ladiesUrls {
+		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
+			log.Info("Fetching lady list from " + currentUrl)
+			page := web.GetUrl(currentUrl, true) // start a goroutine
+			ladyUrls, hasNextPage := parseLadiesList(page)
+			if len(ladyUrls) > 0 {
+				urls = append(urls, ladyUrls...)
+			}
+			if !hasNextPage {
+				break
+			}
+			pageNumber++
+			currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber)
 		}
-		if !hasNextPage {
-			break
-		}
-		pageNumber++
-		currentUrl = ladiesUrls[0] + "?page=" + strconv.Itoa(pageNumber)
 	}
 
 	//send all requests consecutively to avoid getting blocked
@@ -95,9 +91,6 @@ func getRequestWithPopupBypass(url string) *http.Request {
 		return nil
 	}
 
-	//TODO: set cookies
-	//age_popup_show_guest = False
-	//age_popup_show = False
 	request.AddCookie(&http.Cookie{
 		Name:    "age_popup_show_guest",
 		Value:   "False",

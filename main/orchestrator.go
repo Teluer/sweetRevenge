@@ -11,15 +11,11 @@ import (
 	"time"
 )
 
-const sendOrdersBaseInterval = time.Hour * 1
-const sendOrdersIntervalVariation = sendOrdersBaseInterval / 2
-const sendManualOrderRefreshInterval = time.Minute
-
 func programLogic(cfg config.Config) {
 	rand.Seed(time.Now().UnixMilli())
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
 	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
 	//wait for the first update to complete, then proceed
@@ -27,10 +23,7 @@ func programLogic(cfg config.Config) {
 	wg.Wait()
 
 	//everything ready, start sending orders
-	//TODO: enable this when manually tested ordering and the operator called
-	//go sendOrdersRoutine(cfg.OrdersRoutineCfg)
-	//run a thread allowing to send a custom order manually
-	go manualOrdersRoutine()
+	go sendOrdersRoutine(cfg.OrdersRoutineCfg)
 }
 
 func updateLadiesRoutine(wg *sync.WaitGroup, cfg config.LadiesConfig) {
@@ -49,29 +42,17 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 	log.Info("Starting send orders routine")
 	for {
 		sleepAtNight(cfg)
+
 		target.OrderItem(cfg.OrdersCfg)
 
-		//TODO: make variation relative
-		sleepDuration := cfg.SendOrdersBaseInterval +
-			time.Duration(float64(sendOrdersIntervalVariation)*(rand.Float64()-0.5))
+		variationCoefficient := cfg.SendOrdersIntervalVariation*(rand.Float64()-0.5) + 1
+		sleepDuration := time.Duration(float64(cfg.SendOrdersBaseInterval) * variationCoefficient)
 		log.Info(fmt.Sprintf("sendOrdersRoutine: sleeping for %d minutes",
 			sleepDuration/time.Minute))
 		time.Sleep(sleepDuration)
 	}
 }
 
-// TODO: do this inside orders routine to keep normal order rates
-func manualOrdersRoutine() {
-	log.Info("Starting manual orders routine")
-	for {
-		target.ExecuteManualOrder()
-		log.Info(fmt.Sprintf("manualOrdersRoutine: sleeping for %d minutes",
-			sendManualOrderRefreshInterval/time.Minute))
-		time.Sleep(sendManualOrderRefreshInterval)
-	}
-}
-
-// TODO: test this
 func sleepAtNight(cfg config.OrdersRoutineConfig) {
 	loc, _ := time.LoadLocation("Local")
 	year, month, day := time.Now().In(loc).Date()

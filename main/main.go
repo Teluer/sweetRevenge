@@ -11,12 +11,9 @@ import (
 )
 
 func init() {
-	//log.SetReportCaller(true)
-	log.Info("Program Startup")
-
 	file, err := os.Create("sweetRevenge.log")
 	if err != nil {
-		log.Fatal("failed to create log file, what's the point now...")
+		log.Fatal("failed to even create log file, what's the point now...")
 	}
 	log.SetOutput(io.MultiWriter(os.Stdout, file))
 
@@ -24,17 +21,15 @@ func init() {
 }
 
 func main() {
+	log.Info("Program Startup")
+
 	p := properties.MustLoadFile("config.properties", properties.UTF8)
 	var cfg config.Config
 	if err := p.Decode(&cfg); err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("Failed to parse configs")
 	}
 
-	//programLogic(cfg)
-	//test.TestAnonSending()
-	//test.SendTestRequest()
-	//websites.UpdateLadies()
-	//target.ExecuteManualOrder()
+	programLogic(cfg)
 
 	//wait indefinitely
 	select {}

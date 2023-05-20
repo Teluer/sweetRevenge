@@ -20,10 +20,11 @@ func UpdateFirstNamesRoutine(wg *sync.WaitGroup, firstNamesUrl string) {
 }
 
 func fetchFirstNames(firstNamesUrl string) (dtos []dto.FirstName) {
-	page := web.GetUrl(firstNamesUrl, false).Find("tbody")
-	femaleNames := page.Find("div.f").Parent().Next().Children()
+	page := web.GetUnsafe(firstNamesUrl).Find("td.sur")
+	femaleNames := page.Children()
 
-	femaleNames.Each(func(_ int, name *goquery.Selection) {
+	//getting the most popular names only
+	femaleNames.Slice(0, 174).Each(func(_ int, name *goquery.Selection) {
 		dtos = append(dtos, dto.FirstName{FirstName: name.Text()})
 	})
 

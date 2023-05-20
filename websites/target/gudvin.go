@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"net/http"
-	"strconv"
+	"net/url"
 	"strings"
 	"sweetRevenge/config"
 	"sweetRevenge/db/dao"
@@ -16,13 +16,9 @@ import (
 	"time"
 )
 
-type OrderBody struct {
-	VariantId   string `json:"variant_id"`
-	Amount      string `json:"amount"`
-	IsFastOrder string `json:"IsFastOrder"`
-	Name        string `json:"name"`
-	Phone       string `json:"phone"`
-	DeliveryId  string `json:"delivery_id"`
+type OrderSuccess struct {
+	Success  int    `json:"success"`
+	Redirect string `json:"redirect_location"`
 }
 
 // add 0 several times to increase probability
@@ -46,8 +42,12 @@ var categories = []string{
 
 // todo: pass configs
 func OrderItem(cfg config.OrdersConfig) {
-	name, phone := createRandomCustomer()
-	OrderItemWithCustomer(name, phone)
+	//check manually prepared orders, if there are no manual orders then make random order
+	if !ExecuteManualOrder() {
+		log.Info("Sending random order")
+		name, phone := createRandomCustomer()
+		OrderItemWithCustomer(name, phone)
+	}
 }
 
 func OrderItemWithCustomer(name, phone string) {
@@ -65,13 +65,28 @@ func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId
 
 	cookies := getCookies(link)
 	log.Info("Got cookies: ", cookies)
-	req := prepareOrderPostRequest(targetUrl, name, phone, itemId, link, cookies)
-	web.SendRequest(req, true)
+
+	req := prepareOrderRequest(targetUrl, name, phone, itemId, link, cookies)
+	resp, body := web.SendRequest(req, false)
+	log.Info(string(body))
+	cookies = append(cookies, resp.Cookies()...)
+
+	var responseBody OrderSuccess
+	json.Unmarshal(body, &responseBody)
+
+	if responseBody.Success != 1 {
+		log.Error("Response body is not success=1!")
+	}
+
+	log.Info("Confirming payment method for the new order")
+	req = prepareConfirmOrderRequest(responseBody.Redirect, cookies)
+	resp, body = web.SendRequest(req, false)
+
 	saveOrderHistory(name, phone, itemId)
 	log.Info("Sent order successfully")
 }
 
-func ExecuteManualOrder() {
+func ExecuteManualOrder() bool {
 	log.Info("Checking if should send manual orders")
 
 	var manualOrder dto.ManualOrder
@@ -79,7 +94,7 @@ func ExecuteManualOrder() {
 
 	if manualOrder.Phone == "" {
 		log.Info("Manual orders not found, doing nothing")
-		return
+		return false
 	}
 
 	//send either to default target, or to custom url
@@ -91,29 +106,27 @@ func ExecuteManualOrder() {
 			manualOrder.Name, manualOrder.Phone, manualOrder.Target))
 		OrderItemWithCustomerAndTarget(manualOrder.Target, manualOrder.Name, manualOrder.Phone)
 	}
+	return true
 }
 
-func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
+func prepareOrderRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
 	//create request body
-	order, err := json.Marshal(OrderBody{
-		VariantId:   itemId,
-		Amount:      "",
-		Name:        name,
-		Phone:       phone,
-		DeliveryId:  "4",
-		IsFastOrder: "true",
-	})
-	if err != nil {
-		log.WithError(err).Error("Failed to marchal request body, cannot send order!")
-		panic("failed to marshal request body!")
-	}
-	orderBody := string(order)
+	formData := url.Values{}
+	formData.Set("variant_id", itemId)
+	formData.Set("amount", "")
+	formData.Set("IsFastOrder", "true")
+	formData.Set("name", name)
+	formData.Set("phone", phone)
+	formData.Set("delivery_id", "4")
+
+	// Encode the form data
+	body := strings.NewReader(formData.Encode())
 
 	//create request
-	request, err := http.NewRequest("Post", target, strings.NewReader(orderBody))
+	request, err := http.NewRequest("POST", target, body)
 	if err != nil {
 		log.WithError(err).Error("Failed to create request for order!")
-		panic("failed to make request!")
+		panic("failed to create request!")
 	}
 
 	//set cookies previously returned by the server
@@ -127,7 +140,6 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	request.Header.Set("Content-Length", strconv.Itoa(len(orderBody)))
 	request.Header.Set("X-Requested-With", "XMLHttpRequest")
 	request.Header.Set("Origin", "https://gudvin.md")
 	request.Header.Set("DNT", "1")
@@ -136,6 +148,42 @@ func prepareOrderPostRequest(target, name, phone, itemId, referer string, cookie
 	request.Header.Set("Sec-Fetch-Dest", "empty")
 	request.Header.Set("Sec-Fetch-Mode", "cors")
 	request.Header.Set("Sec-Fetch-Site", "same-origin")
+	request.Header.Set("Host", "gudvin.md")
+
+	return request
+}
+
+func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
+	formData := url.Values{}
+	formData.Set("payment_method_id", "23")
+	formData.Set("checkout", "Применить")
+	// Encode the form data
+	body := strings.NewReader(formData.Encode())
+
+	request, err := http.NewRequest("POST", target, body)
+	if err != nil {
+		log.WithError(err).Error("Failed to create request for order!")
+		panic("failed to create request!")
+	}
+
+	//set cookies previously returned by the server
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+
+	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	request.Header.Set("Origin", "https://gudvin.md")
+	request.Header.Set("Connection", "keep-alive")
+	request.Header.Set("Referer", target)
+	request.Header.Set("Sec-Fetch-Dest", "document")
+	request.Header.Set("Upgrade-Insecure-Requests", "1")
+	request.Header.Set("Sec-Fetch-Mode", "navigate")
+	request.Header.Set("Sec-Fetch-Site", "same-origin")
+	request.Header.Set("Sec-Fetch-User", "?1")
 
 	return request
 }

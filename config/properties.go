@@ -17,7 +17,7 @@ type Config struct {
 
 type OrdersRoutineConfig struct {
 	SendOrdersBaseInterval      time.Duration `properties:"SendOrdersBaseInterval"`
-	SendOrdersIntervalVariation float32       `properties:"SendOrdersIntervalVariation"`
+	SendOrdersIntervalVariation float64       `properties:"SendOrdersIntervalVariation"`
 	DayStart                    time.Duration `properties:"DayStart"`
 	DayEnd                      time.Duration `properties:"DayEnd"`
 	OrdersCfg                   OrdersConfig
