@@ -14,7 +14,16 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o /usr/local/bin/sweetRevenge ./src/main
+RUN go build -o sweetRevenge ./src/main
+
+# Start a new stage
+FROM rabbitmq:3.9
+
+# Copy the built Go application from the previous stage
+COPY --from=builder /app/sweetRevenge /usr/local/bin/sweetRevenge
+
+COPY config.properties .
+COPY rabbitmq.conf /etc/rabbitmq/
 
 # Copy Tor and libraries
 COPY TorLinux/data /usr/local/tor/data/
@@ -27,7 +36,7 @@ RUN ldconfig /usr/local/lib/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Expose the port on which your Go application listens
-#EXPOSE 8080
+EXPOSE 5672
 
 # Set the entrypoint script as executable
 RUN chmod +x /usr/local/bin/entrypoint.sh

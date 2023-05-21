@@ -8,9 +8,8 @@ type Config struct {
 	OrdersRoutineCfg OrdersRoutineConfig
 
 	SocksProxyAddress string `properties:"SocksProxy"`
-
-	FirstNamesUrl string `properties:"FirstNamesUrl"`
-	LastNamesUrl  string `properties:"LastNamesUrl"`
+	FirstNamesUrl     string `properties:"FirstNamesUrl"`
+	LastNamesUrl      string `properties:"LastNamesUrl"`
 
 	LadiesCfg LadiesConfig
 }
@@ -24,10 +23,16 @@ type OrdersRoutineConfig struct {
 }
 
 type OrdersConfig struct {
-	PhonePrefixes    []string `properties:"PhonePrefixes"`
-	TargetBaselink   string   `properties:"TargetBaselink"`
-	TargetOrderLink  string   `properties:"TargetOrderLink"`
-	TargetCategories []string `properties:"TargetCategories"`
+	PhonePrefixes    []string     `properties:"PhonePrefixes"`
+	TargetBaselink   string       `properties:"TargetBaselink"`
+	TargetOrderLink  string       `properties:"TargetOrderLink"`
+	TargetCategories []string     `properties:"TargetCategories"`
+	Rabbit           RabbitConfig `properties:"Rabbit"`
+}
+
+type RabbitConfig struct {
+	Host      string
+	QueueName string
 }
 
 type LadiesConfig struct {
