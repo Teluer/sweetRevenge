@@ -1,8 +1,8 @@
 ControlPort 9051
-DataDirectory /usr/local/bin/data
+DataDirectory /usr/local/tor/data
 ExitNodes {md},{ua},{ro} StrictNodes 0
-GeoIPFile /usr/local/bin/data/geoip
-GeoIPv6File /usr/local/bin/data/geoip6
+GeoIPFile /usr/local/tor/data/geoip
+GeoIPv6File /usr/local/tor/data/geoip6
 SocksPort 1080
 #SocksListenAddress host
 SocksPolicy accept *

@@ -6,7 +6,7 @@ import (
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
 	dto2 "sweetRevenge/src/db/dto"
-	websites2 "sweetRevenge/src/websites"
+	"sweetRevenge/src/websites"
 	"sweetRevenge/src/websites/target"
 	"sync"
 	"time"
@@ -15,12 +15,12 @@ import (
 func programLogic(cfg config.Config) {
 	rand.Seed(time.Now().UnixMilli())
 
-	//wait for the first update to complete, then proceed with orders.
+	//wait for the updates to complete, then proceed with orders.
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go websites2.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
-	go websites2.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
+	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
+	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
 	wg.Wait()
 	go updateLadiesRoutine(cfg.LadiesCfg)
 
@@ -31,7 +31,7 @@ func programLogic(cfg config.Config) {
 func updateLadiesRoutine(cfg config.LadiesConfig) {
 	log.Info("Starting update ladies routine")
 	for {
-		websites2.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
+		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
 		log.Info("updateLadiesRoutine: sleeping for ", int(cfg.UpdateLadiesInterval/time.Minute), " minutes")
 		time.Sleep(cfg.UpdateLadiesInterval)
 	}
@@ -58,7 +58,7 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 }
 
 func sleepAtNight(cfg config.OrdersRoutineConfig) {
-	loc, _ := time.LoadLocation("Local")
+	loc, _ := time.LoadLocation(cfg.TimeZone)
 	year, month, day := time.Now().In(loc).Date()
 	midnight := time.Date(year, month, day, 0, 0, 0, 0, loc)
 

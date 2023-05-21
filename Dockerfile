@@ -16,11 +16,11 @@ COPY . .
 # Build the Go application
 RUN go build -o /usr/local/bin/sweetRevenge ./src/main
 
-# Copy the Tor binary
-COPY TorLinux /usr/local/bin/
-# Copy the required library for Tor
+# Copy Tor and libraries
+COPY TorLinux/data /usr/local/tor/data/
+COPY TorLinux/tor/tor /usr/local/bin/
+COPY TorLinux/torrc ./torrc
 COPY TorLinux/tor/lib* /usr/local/lib/
-# Update the library cache
 RUN ldconfig /usr/local/lib/
 
 # Copy the entrypoint script

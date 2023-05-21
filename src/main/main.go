@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+//TODO: develop admin panel to update several configs
+//TODO: pass manual orders through an MQ
+//TODO: add unit testing
+
 func init() {
 	file, err := os.Create("sweetRevenge.log")
 	if err != nil {

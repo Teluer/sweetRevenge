@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	dto2 "sweetRevenge/src/db/dto"
+	"sweetRevenge/src/db/dto"
 )
 
 type GormDao struct {
@@ -26,11 +26,11 @@ func open() *GormDao {
 
 func AutoMigrateAll() {
 	dao.db.AutoMigrate(
-		&dto2.FirstName{},
-		&dto2.LastName{},
-		&dto2.Lady{},
-		&dto2.ManualOrder{},
-		&dto2.OrderHistory{})
+		&dto.FirstName{},
+		&dto.LastName{},
+		&dto.Lady{},
+		&dto.ManualOrder{},
+		&dto.OrderHistory{})
 }
 
 func Insert(obj any) {
@@ -47,7 +47,6 @@ func IsTableEmpty(obj any) bool {
 	return dao.db.Limit(1).Find(obj).RowsAffected == 0
 }
 
-// TODO: replace with MQ?
 func FindFirst(obj any) {
 	dao.db.Limit(1).Find(obj)
 }

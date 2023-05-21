@@ -19,6 +19,7 @@ type OrdersRoutineConfig struct {
 	SendOrdersMaxInterval time.Duration `properties:"SendOrdersMaxInterval"`
 	DayStart              time.Duration `properties:"DayStart"`
 	DayEnd                time.Duration `properties:"DayEnd"`
+	TimeZone              string        `properties:"TimeZone"`
 	OrdersCfg             OrdersConfig
 }
 

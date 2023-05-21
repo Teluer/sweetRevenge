@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"sweetRevenge/src/config"
-	dao2 "sweetRevenge/src/db/dao"
-	dto2 "sweetRevenge/src/db/dto"
+	"sweetRevenge/src/db/dao"
+	"sweetRevenge/src/db/dto"
 	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites/web"
 	"time"
@@ -22,53 +22,29 @@ type OrderSuccess struct {
 	Redirect string `json:"redirect_location"`
 }
 
-// add 0 several times to increase probability
-var phonePrefixes = []string{
-	"0", "0", "0", "0", "+373", "(+373)", "+373 ",
-}
+// okay this is ugly but convenient
+var orderCfg config.OrdersConfig
 
-const baselink = "https://gudvin.md"
-const orderLink = baselink + "/okay-cms/fast-order/create-order"
-
-var categories = []string{
-	"https://gudvin.md/catalog/ulichnoe-osveschenie",
-	"https://gudvin.md/catalog/tovary-dlya-avto",
-	"https://gudvin.md/catalog/prochie-tovary",
-	"https://gudvin.md/catalog/stereosistemyusiliteli",
-	"https://gudvin.md/catalog/melkaya-bytovaya-tehnika",
-	"https://gudvin.md/catalog/tovary-dlya-kuhni",
-	"https://gudvin.md/catalog/turizm-sport-i-otdyh",
-	"https://gudvin.md/catalog/elektronika",
-}
-
-// todo: pass configs
 func OrderItem(cfg config.OrdersConfig) {
 	defer util.RecoverAndLogError("Orders")
+	orderCfg = cfg
 	//check manually prepared orders, if there are no manual orders then make random order
-	if !ExecuteManualOrder() {
+	if !executeManualOrder() {
 		log.Info("Sending random order")
 		name, phone := createRandomCustomer()
-		OrderItemWithCustomer(name, phone)
+		orderItemWithCustomer(name, phone)
 	}
 }
 
-func OrderItemWithCustomer(name, phone string) {
-	OrderItemWithCustomerAndTarget(orderLink, name, phone)
-}
-
-func OrderItemWithCustomerAndTarget(targetUrl, name, phone string) {
+func orderItemWithCustomer(name, phone string) {
 	itemId, link := findRandomItem()
-	OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link)
-}
-
-func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId, link string) {
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
-		name, phone, itemId, link, targetUrl))
+		name, phone, itemId, link, orderCfg.TargetOrderLink))
 
 	cookies := getCookies(link)
 	log.Info("Got cookies: ", cookies)
 
-	req := prepareOrderRequest(targetUrl, name, phone, itemId, link, cookies)
+	req := prepareOrderRequest(orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
 	resp, body := web.SendRequest(req, false)
 	log.Info(string(body))
 	cookies = append(cookies, resp.Cookies()...)
@@ -88,27 +64,21 @@ func OrderItemWithCustomerAndTargetAndItemAndLink(targetUrl, name, phone, itemId
 	log.Info("Sent order successfully")
 }
 
-func ExecuteManualOrder() bool {
+func executeManualOrder() bool {
 	log.Info("Checking if should send manual orders")
 
-	var manualOrder dto2.ManualOrder
-	dao2.FindFirst(&manualOrder)
+	var manualOrder dto.ManualOrder
+	dao.FindFirst(&manualOrder)
 
 	if manualOrder.Phone == "" {
 		log.Info("Manual orders not found, doing nothing")
 		return false
 	}
 
-	//send either to default target, or to custom url
-	if manualOrder.Target == "" {
-		log.Info(fmt.Sprintf("Sending manual order for %s %s", manualOrder.Name, manualOrder.Phone))
-		OrderItemWithCustomer(manualOrder.Name, manualOrder.Phone)
-	} else {
-		log.Info(fmt.Sprintf("Sending manual order for %s %s to %s",
-			manualOrder.Name, manualOrder.Phone, manualOrder.Target))
-		OrderItemWithCustomerAndTarget(manualOrder.Target, manualOrder.Name, manualOrder.Phone)
-	}
-	dao2.Delete(manualOrder)
+	log.Info(fmt.Sprintf("Sending manual order for %s %s", manualOrder.Name, manualOrder.Phone))
+	orderItemWithCustomer(manualOrder.Name, manualOrder.Phone)
+
+	dao.Delete(manualOrder)
 	return true
 }
 
@@ -198,7 +168,7 @@ func getCookies(link string) []*http.Cookie {
 }
 
 func findRandomItem() (id string, link string) {
-	randomCategory := categories[rand.Intn(len(categories))]
+	randomCategory := orderCfg.TargetCategories[rand.Intn(len(orderCfg.TargetCategories))]
 
 	log.Info("Fetching random item from category " + randomCategory)
 
@@ -215,7 +185,7 @@ func findRandomItem() (id string, link string) {
 		return true
 	})
 
-	link = baselink + link
+	link = orderCfg.TargetBaselink + link
 	log.Info("Will order the following item: " + id + " " + link)
 	return id, link
 }
@@ -223,27 +193,27 @@ func findRandomItem() (id string, link string) {
 func createRandomCustomer() (name string, phone string) {
 	const firstNameOnlyIncidence = 0.2
 	const firstNameAfterLastNameIncidence = 0.6
-	const nameLowerCaseIncidence = 0.08
+	const nameLowerCaseIncidence = 0.05
 	const phoneWithSpaceIncidence = 0.5
 
 	log.Info("Generating a random customer name/phone combination")
 
 	//write phones in random formats
-	phone = dao2.GetLeastUsedPhone()
-	prefixIndex := rand.Intn(len(phonePrefixes))
-	prefix := phonePrefixes[rand.Intn(len(phonePrefixes))]
+	phone = dao.GetLeastUsedPhone()
+	prefixIndex := rand.Intn(len(orderCfg.PhonePrefixes))
+	prefix := orderCfg.PhonePrefixes[rand.Intn(len(orderCfg.PhonePrefixes))]
 	if prefixIndex > 6 && evaluateProbability(phoneWithSpaceIncidence) {
 		prefix += " "
 	}
 	phone = prefix + phone
 
 	//names should look random as well
-	name = dao2.GetLeastUsedFirstName()
+	name = dao.GetLeastUsedFirstName()
 	if !evaluateProbability(firstNameOnlyIncidence) {
 		if evaluateProbability(firstNameAfterLastNameIncidence) {
-			name = dao2.GetLeastUsedLastName() + " " + name
+			name = dao.GetLeastUsedLastName() + " " + name
 		} else {
-			name = name + " " + dao2.GetLeastUsedLastName()
+			name = name + " " + dao.GetLeastUsedLastName()
 		}
 	}
 	if evaluateProbability(nameLowerCaseIncidence) {
@@ -258,12 +228,12 @@ func evaluateProbability(probability float64) bool {
 }
 
 func saveOrderHistory(name, phone, itemId string) {
-	var record = dto2.OrderHistory{
+	var record = dto.OrderHistory{
 		Phone:         phone,
 		Name:          name,
 		ItemId:        itemId,
 		OrderDateTime: time.Now(),
 	}
 
-	dao2.Insert(&record)
+	dao.Insert(&record)
 }
