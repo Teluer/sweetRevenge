@@ -4,7 +4,7 @@
 /usr/local/bin/tor -f torrc &> tor.log &
 
 #Start rabbitmq
-rabbitmq-server &
+rabbitmq-server &> rabbit.log &
 
 # Run your Go application
-sweetRevenge
+dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec ./sweetRevenge

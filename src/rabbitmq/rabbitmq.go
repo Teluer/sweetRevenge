@@ -1,14 +1,18 @@
 package rabbitmq
 
 import (
+	"encoding/json"
 	"github.com/silenceper/pool"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"sweetRevenge/src/config"
+	"sweetRevenge/src/db/dto"
 	"time"
 )
 
-func InitializeRabbitMq(cfg config.RabbitConfig) *pool.Pool {
+var rabbitPool *pool.Pool
+
+func InitializeRabbitMq(cfg config.RabbitConfig) {
 	//wait for rabbitmq to initialize
 	TestConnection(cfg.Host)
 
@@ -28,9 +32,10 @@ func InitializeRabbitMq(cfg config.RabbitConfig) *pool.Pool {
 	if err != nil {
 		log.Fatalf("Failed to create RabbitMQ connection pool: %v", err)
 	}
+	rabbitPool = &connPool
 
 	// Declare queue
-	ch := GetChannel(&connPool)
+	ch := GetChannel()
 	defer ch.Close()
 
 	_, err = ch.QueueDeclare(
@@ -44,8 +49,6 @@ func InitializeRabbitMq(cfg config.RabbitConfig) *pool.Pool {
 	if err != nil {
 		log.Fatalf("Failed to declare manual orders queue: %v", err)
 	}
-
-	return &connPool
 }
 
 func TestConnection(url string) bool {
@@ -66,8 +69,8 @@ func TestConnection(url string) bool {
 	return false
 }
 
-func GetChannel(connPool *pool.Pool) *amqp.Channel {
-	conn, err := (*connPool).Get()
+func GetChannel() *amqp.Channel {
+	conn, err := (*rabbitPool).Get()
 	if err != nil {
 		log.Panic("Failed to acquire connection from pool:", err)
 		panic(err)
@@ -85,9 +88,9 @@ func GetChannel(connPool *pool.Pool) *amqp.Channel {
 	return ch
 }
 
-//TODO: implement
-func ConsumeManualOrder(connPool *pool.Pool, queue string) {
-	ch := GetChannel(connPool)
+// TODO: implement
+func ConsumeManualOrder(queue string) *dto.ManualOrder {
+	ch := GetChannel()
 	messages, err := ch.Consume(
 		queue,    // queue
 		"orders", // consumer
@@ -98,18 +101,28 @@ func ConsumeManualOrder(connPool *pool.Pool, queue string) {
 		nil,      // arguments
 	)
 	if err != nil {
-		log.Fatalf("Failed to register a consumer: %v", err)
+		log.Error("Failed to register a consumer: %v", err)
 	}
 
 	message := <-messages
+
+	var manualOrder dto.ManualOrder
+	err = json.Unmarshal(message.Body, &manualOrder)
+	if err != nil {
+		log.Error("Failed to unmarshal message: %v", err)
+		// Handle unmarshal error
+		return nil
+	}
+
 	body := string(message.Body)
 	log.Printf("Received message: %s", body)
+	return nil
 }
 
-//TODO: implement
-func Publish(connPool *pool.Pool, queue string) {
+// TODO: implement
+func Publish(queue string) {
 	// RabbitMQ connection URL
-	ch := GetChannel(connPool)
+	ch := GetChannel()
 	defer ch.Close()
 
 	// Publish a message to the queue

@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o sweetRevenge ./src/main
+RUN go build -gcflags \"all=-N -l\" -o sweetRevenge ./src/main
 
 # Start a new stage
 FROM rabbitmq:3.9
@@ -36,7 +36,7 @@ RUN ldconfig /usr/local/lib/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Expose the port on which your Go application listens
-EXPOSE 5672
+EXPOSE 2345
 
 # Set the entrypoint script as executable
 RUN chmod +x /usr/local/bin/entrypoint.sh
