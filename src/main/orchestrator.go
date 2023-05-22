@@ -6,15 +6,15 @@ import (
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
 	dto2 "sweetRevenge/src/db/dto"
+	"sweetRevenge/src/rabbitmq"
 	"sweetRevenge/src/websites"
-	"sweetRevenge/src/websites/target"
+	"sweetRevenge/src/websites/target/legacy"
 	"sync"
 	"time"
 )
 
 func programLogic(cfg config.Config) {
 	rand.Seed(time.Now().UnixMilli())
-
 	//wait for the updates to complete, then proceed with orders.
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
 	var wg sync.WaitGroup
@@ -22,10 +22,27 @@ func programLogic(cfg config.Config) {
 	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
 	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
 	wg.Wait()
+
+	go manualOrdersRoutine(cfg.OrdersRoutineCfg.OrdersCfg.Rabbit)
+	log.Info("Not STUCK!")
+
+	//TODO: some bug prevents ladies from marking as used
 	go updateLadiesRoutine(cfg.LadiesCfg)
 
 	//everything ready, start sending orders
-	go sendOrdersRoutine(cfg.OrdersRoutineCfg)
+	//go sendOrdersRoutine(cfg.OrdersRoutineCfg)
+}
+
+func manualOrdersRoutine(cfg config.RabbitConfig) {
+	log.Info("Initializing rabbitmq connection")
+	rabbitmq.InitializeRabbitMq(cfg)
+
+	log.Info("Starting manual orders RabbitMq listener")
+	for {
+		order := rabbitmq.ConsumeManualOrder(cfg.QueueName)
+		legacy.QueueManualOrder(order)
+		log.Info("Manual order is queued and will be executed by Orders routine")
+	}
 }
 
 func updateLadiesRoutine(cfg config.LadiesConfig) {
@@ -46,7 +63,7 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 		//is everything in place to make orders
 		readyToGo := !(dao.IsTableEmpty(&dto2.FirstName{}) || dao.IsTableEmpty(&dto2.LastName{}) || dao.IsTableEmpty(&dto2.Lady{}))
 		if readyToGo {
-			target.OrderItem(cfg.OrdersCfg)
+			legacy.OrderItem(cfg.OrdersCfg)
 		}
 
 		jobDuration := time.Now().Sub(jobStart)

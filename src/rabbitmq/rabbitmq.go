@@ -105,6 +105,7 @@ func ConsumeManualOrder(queue string) *dto.ManualOrder {
 	}
 
 	message := <-messages
+	log.Printf("Received message: %s", string(message.Body))
 
 	var manualOrder dto.ManualOrder
 	err = json.Unmarshal(message.Body, &manualOrder)
@@ -113,32 +114,29 @@ func ConsumeManualOrder(queue string) *dto.ManualOrder {
 		// Handle unmarshal error
 		return nil
 	}
-
-	body := string(message.Body)
-	log.Printf("Received message: %s", body)
-	return nil
+	return &manualOrder
 }
 
-// TODO: implement
-func Publish(queue string) {
-	// RabbitMQ connection URL
-	ch := GetChannel()
-	defer ch.Close()
-
-	// Publish a message to the queue
-	message := "Hello, RabbitMQ!"
-	err := ch.Publish(
-		"",    // exchange
-		queue, // routing key
-		false, // mandatory
-		false, // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
-		})
-	if err != nil {
-		log.Error("Failed to publish a message: %v", err)
-	} else {
-		log.Infof("Message sent: %s", message)
-	}
-}
+// TODO: implement this when there is admin panel
+//func Publish(queue string) {
+//	// RabbitMQ connection URL
+//	ch := GetChannel()
+//	defer ch.Close()
+//
+//	// Publish a message to the queue
+//	message := "Hello, RabbitMQ!"
+//	err := ch.Publish(
+//		"",    // exchange
+//		queue, // routing key
+//		false, // mandatory
+//		false, // immediate
+//		amqp.Publishing{
+//			ContentType: "text/plain",
+//			Body:        []byte(message),
+//		})
+//	if err != nil {
+//		log.Error("Failed to publish a message: %v", err)
+//	} else {
+//		log.Infof("Message sent: %s", message)
+//	}
+//}

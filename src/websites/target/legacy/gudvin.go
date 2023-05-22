@@ -1,4 +1,4 @@
-package target
+package legacy
 
 import (
 	"encoding/json"
@@ -24,6 +24,7 @@ type OrderSuccess struct {
 
 // okay this is ugly but convenient
 var orderCfg config.OrdersConfig
+var manualOrders []*dto.ManualOrder
 
 func OrderItem(cfg config.OrdersConfig) {
 	defer util.RecoverAndLogError("Orders")
@@ -54,6 +55,7 @@ func orderItemWithCustomer(name, phone string) {
 
 	if responseBody.Success != 1 {
 		log.Error("Response body is not success=1!")
+		return
 	}
 
 	log.Info("Confirming payment method for the new order")
@@ -64,21 +66,21 @@ func orderItemWithCustomer(name, phone string) {
 	log.Info("Sent order successfully")
 }
 
+func QueueManualOrder(order *dto.ManualOrder) {
+	manualOrders = append(manualOrders, order)
+}
+
 func executeManualOrder() bool {
 	log.Info("Checking if should send manual orders")
-
-	var manualOrder dto.ManualOrder
-	dao.FindFirst(&manualOrder)
-
-	if manualOrder.Phone == "" {
-		log.Info("Manual orders not found, doing nothing")
+	if len(manualOrders) == 0 {
+		log.Info("Manual orders not found")
 		return false
 	}
 
-	log.Info(fmt.Sprintf("Sending manual order for %s %s", manualOrder.Name, manualOrder.Phone))
-	orderItemWithCustomer(manualOrder.Name, manualOrder.Phone)
-
-	dao.Delete(manualOrder)
+	order := manualOrders[0]
+	log.Info(fmt.Sprintf("Sending manual order for %s %s", order.Name, order.Phone))
+	orderItemWithCustomer(order.Name, order.Phone)
+	manualOrders = manualOrders[1:]
 	return true
 }
 
