@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	OrdersRoutineCfg OrdersRoutineConfig
+	Rabbit           RabbitConfig `properties:"Rabbit"`
 
 	SocksProxyAddress string `properties:"SocksProxy"`
 	FirstNamesUrl     string `properties:"FirstNamesUrl"`
@@ -23,11 +24,10 @@ type OrdersRoutineConfig struct {
 }
 
 type OrdersConfig struct {
-	PhonePrefixes    []string     `properties:"PhonePrefixes"`
-	TargetBaselink   string       `properties:"TargetBaselink"`
-	TargetOrderLink  string       `properties:"TargetOrderLink"`
-	TargetCategories []string     `properties:"TargetCategories"`
-	Rabbit           RabbitConfig `properties:"Rabbit"`
+	PhonePrefixes    []string `properties:"PhonePrefixes"`
+	TargetBaselink   string   `properties:"TargetBaselink"`
+	TargetOrderLink  string   `properties:"TargetOrderLink"`
+	TargetCategories []string `properties:"TargetCategories"`
 }
 
 type RabbitConfig struct {

@@ -24,7 +24,7 @@ func programLogic(cfg config.Config) {
 	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
 	wg.Wait()
 
-	go manualOrdersRoutine(cfg.OrdersRoutineCfg.OrdersCfg.Rabbit)
+	go manualOrdersRoutine(cfg.Rabbit)
 	log.Info("Not STUCK!")
 
 	go updateLadiesRoutine(cfg.LadiesCfg)
