@@ -7,6 +7,7 @@ import (
 	"github.com/streadway/amqp"
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dto"
+	"sweetRevenge/src/util"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 	}
 	connPool, err := pool.NewChannelPool(poolConfig)
 	if err != nil {
-		log.Fatalf("Failed to create RabbitMQ connection pool: %v", err)
+		log.Error("Failed to create RabbitMQ connection pool: %v", err)
 	}
 	rabbitPool = &connPool
 
@@ -47,7 +48,7 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 		nil,           // arguments
 	)
 	if err != nil {
-		log.Fatalf("Failed to declare manual orders queue: %v", err)
+		log.Error("Failed to declare manual orders queue: %v", err)
 	}
 }
 
@@ -63,7 +64,7 @@ func TestConnection(url string) bool {
 			return true
 		}
 
-		log.Printf("Failed to connect to RabbitMQ: %v", err)
+		log.Errorf("Failed to connect to RabbitMQ: %v", err)
 		time.Sleep(retryTimeout)
 	}
 	return false
@@ -88,9 +89,11 @@ func GetChannel() *amqp.Channel {
 	return ch
 }
 
-// TODO: implement
 func ConsumeManualOrder(queue string) *dto.ManualOrder {
+	defer util.RecoverAndLogError("RabbitMq")
+
 	ch := GetChannel()
+	defer ch.Close()
 	messages, err := ch.Consume(
 		queue,    // queue
 		"orders", // consumer
@@ -102,6 +105,7 @@ func ConsumeManualOrder(queue string) *dto.ManualOrder {
 	)
 	if err != nil {
 		log.Error("Failed to register a consumer: %v", err)
+		panic(err)
 	}
 
 	message := <-messages

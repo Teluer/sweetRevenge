@@ -7,6 +7,7 @@ import (
 	"sweetRevenge/src/db/dao"
 	dto2 "sweetRevenge/src/db/dto"
 	"sweetRevenge/src/rabbitmq"
+	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites"
 	"sweetRevenge/src/websites/target/legacy"
 	"sync"
@@ -39,9 +40,12 @@ func manualOrdersRoutine(cfg config.RabbitConfig) {
 
 	log.Info("Starting manual orders RabbitMq listener")
 	for {
-		order := rabbitmq.ConsumeManualOrder(cfg.QueueName)
-		legacy.QueueManualOrder(order)
-		log.Info("Manual order is queued and will be executed by Orders routine")
+		func() {
+			defer util.RecoverAndLogError("RabbitMq")
+			order := rabbitmq.ConsumeManualOrder(cfg.QueueName)
+			legacy.QueueManualOrder(order)
+			log.Info("Manual order is queued and will be executed by Orders routine")
+		}()
 	}
 }
 
