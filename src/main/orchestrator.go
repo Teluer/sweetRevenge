@@ -25,10 +25,7 @@ func programLogic(cfg config.Config) {
 	wg.Wait()
 
 	go manualOrdersRoutine(cfg.Rabbit)
-	log.Info("Not STUCK!")
-
 	go updateLadiesRoutine(cfg.LadiesCfg)
-
 	//everything ready, start sending orders
 	go sendOrdersRoutine(cfg.OrdersRoutineCfg)
 }
@@ -62,6 +59,7 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 
 	//sleeping at first to avoid order spamming due to multiple restarts
 	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+	log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
 	time.Sleep(sleepDuration)
 
 	for {
