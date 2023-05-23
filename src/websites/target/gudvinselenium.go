@@ -81,6 +81,7 @@ func (s *Selenium) Input(selector, value string) {
 	}
 }
 
+// TODO: solve captcha only if present
 func (s *Selenium) SolveCaptcha() {
 	webDriver := *s.driver
 

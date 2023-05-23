@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"sweetRevenge/src/config"
-	"sweetRevenge/src/db/dto"
 	"sweetRevenge/src/util"
 	"time"
 )
@@ -89,7 +88,7 @@ func GetChannel() *amqp.Channel {
 	return ch
 }
 
-func ConsumeManualOrder(queue string) *dto.ManualOrder {
+func ConsumeManualOrder(queue string) *ManualOrder {
 	defer util.RecoverAndLogError("RabbitMq")
 
 	ch := GetChannel()
@@ -111,7 +110,7 @@ func ConsumeManualOrder(queue string) *dto.ManualOrder {
 	message := <-messages
 	log.Printf("Received message: %s", string(message.Body))
 
-	var manualOrder dto.ManualOrder
+	var manualOrder ManualOrder
 	err = json.Unmarshal(message.Body, &manualOrder)
 	if err != nil {
 		log.Error("Failed to unmarshal message: %v", err)

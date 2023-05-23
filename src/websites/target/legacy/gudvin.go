@@ -12,6 +12,7 @@ import (
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
 	"sweetRevenge/src/db/dto"
+	"sweetRevenge/src/rabbitmq"
 	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites/web"
 	"time"
@@ -24,7 +25,7 @@ type OrderSuccess struct {
 
 // okay this is ugly but convenient
 var orderCfg config.OrdersConfig
-var manualOrders []*dto.ManualOrder
+var manualOrders []*rabbitmq.ManualOrder
 
 func OrderItem(cfg config.OrdersConfig) {
 	defer util.RecoverAndLogError("Orders")
@@ -66,7 +67,7 @@ func orderItemWithCustomer(name, phone string) {
 	log.Info("Sent order successfully")
 }
 
-func QueueManualOrder(order *dto.ManualOrder) {
+func QueueManualOrder(order *rabbitmq.ManualOrder) {
 	manualOrders = append(manualOrders, order)
 }
 

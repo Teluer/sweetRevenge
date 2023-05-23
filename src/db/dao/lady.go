@@ -51,8 +51,8 @@ OUTDATED_LOOP:
 
 	log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
 	Insert(&newLadies)
-	log.Info(fmt.Sprintf("Deleting %d ladies", len(outdatedLadies)))
-	Delete(&outdatedLadies)
+	//log.Info(fmt.Sprintf("Deleting %d ladies", len(outdatedLadies)))
+	//Delete(&outdatedLadies)
 }
 
 func SelectPhones() []string {

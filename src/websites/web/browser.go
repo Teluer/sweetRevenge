@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func GetUnsafe(url string) *goquery.Document {
+func GetUrlUnsafe(url string) *goquery.Document {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.WithError(err).Error("Unsafe GET request failed")
@@ -17,6 +17,19 @@ func GetUnsafe(url string) *goquery.Document {
 	}
 	defer resp.Body.Close()
 	log.Info("Got status", resp.Status, " to unsafe GET to url:", url)
+
+	body, _ := io.ReadAll(resp.Body)
+	return extractDocumentFromResponseBody(body)
+}
+
+func GetRequestUnsafe(req *http.Request) *goquery.Document {
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.WithError(err).Error("Unsafe request failed")
+		panic(err)
+	}
+	defer resp.Body.Close()
+	log.Debug("Got status", resp.Status, " to unsafe request to url:", req.URL.String())
 
 	body, _ := io.ReadAll(resp.Body)
 	return extractDocumentFromResponseBody(body)

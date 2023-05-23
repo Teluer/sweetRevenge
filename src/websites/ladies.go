@@ -46,6 +46,9 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
 	for _, url := range urls {
 		url = ladiesBaseUrl + url
 		request := getRequestWithPopupBypass(url)
+		if request == nil {
+			continue
+		}
 		ad := web.GetRequest(request)
 		lady := getLady(ad)
 		if lady.Phone != "" {

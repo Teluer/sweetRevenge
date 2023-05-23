@@ -29,7 +29,6 @@ func AutoMigrateAll() {
 		&dto.FirstName{},
 		&dto.LastName{},
 		&dto.Lady{},
-		&dto.ManualOrder{},
 		&dto.OrderHistory{})
 }
 
@@ -45,8 +44,4 @@ func Delete(obj any) {
 
 func IsTableEmpty(obj any) bool {
 	return dao.db.Limit(1).Find(obj).RowsAffected == 0
-}
-
-func FindFirst(obj any) {
-	dao.db.Limit(1).Find(obj)
 }

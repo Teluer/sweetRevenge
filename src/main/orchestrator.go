@@ -27,7 +27,6 @@ func programLogic(cfg config.Config) {
 	go manualOrdersRoutine(cfg.OrdersRoutineCfg.OrdersCfg.Rabbit)
 	log.Info("Not STUCK!")
 
-	//TODO: some bug prevents ladies from marking as used
 	go updateLadiesRoutine(cfg.LadiesCfg)
 
 	//everything ready, start sending orders
@@ -60,6 +59,11 @@ func updateLadiesRoutine(cfg config.LadiesConfig) {
 
 func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 	log.Info("Starting send orders routine")
+
+	//sleeping at first to avoid order spamming due to multiple restarts
+	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+	time.Sleep(sleepDuration)
+
 	for {
 		sleepAtNight(cfg)
 		jobStart := time.Now()
@@ -71,8 +75,7 @@ func sendOrdersRoutine(cfg config.OrdersRoutineConfig) {
 		}
 
 		jobDuration := time.Now().Sub(jobStart)
-
-		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
+		sleepDuration = time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
 		log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
 		time.Sleep(sleepDuration)
 	}
