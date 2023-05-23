@@ -22,36 +22,23 @@ func GetUnsafe(url string) *goquery.Document {
 	return extractDocumentFromResponseBody(body)
 }
 
-func SendRequest(req *http.Request, sameSession bool) (response *http.Response, body []byte) {
-	if sameSession {
-		return currentSession.anonymousRequest(req)
-	} else {
-		return openNewSession().anonymousRequest(req)
-	}
+func SendRequest(req *http.Request) (response *http.Response, body []byte) {
+	return openNewSession().anonymousRequest(req)
 }
 
-func GetUrl(url string, sameSession bool) *goquery.Document {
-	var responseBody []byte
-	if sameSession {
-		_, responseBody = currentSession.getAnonymously(url)
-	} else {
-		_, responseBody = openNewSession().getAnonymously(url)
-	}
+func GetUrl(url string) *goquery.Document {
+	_, responseBody := openNewSession().getAnonymously(url)
 	return extractDocumentFromResponseBody(responseBody)
 }
 
-func GetRequest(req *http.Request, sameSession bool) *goquery.Document {
-	_, body := SendRequest(req, sameSession)
+func GetRequest(req *http.Request) *goquery.Document {
+	_, body := SendRequest(req)
 	return extractDocumentFromResponseBody(body)
 }
 
-func FetchCookies(url string, sameSession bool) []*http.Cookie {
+func FetchCookies(url string) []*http.Cookie {
 	var resp *http.Response
-	if sameSession {
-		resp, _ = currentSession.getAnonymously(url)
-	} else {
-		resp, _ = openNewSession().getAnonymously(url)
-	}
+	resp, _ = openNewSession().getAnonymously(url)
 	return resp.Cookies()
 }
 

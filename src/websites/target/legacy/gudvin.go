@@ -46,7 +46,7 @@ func orderItemWithCustomer(name, phone string) {
 	log.Info("Got cookies: ", cookies)
 
 	req := prepareOrderRequest(orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
-	resp, body := web.SendRequest(req, false)
+	resp, body := web.SendRequest(req)
 	log.Info(string(body))
 	cookies = append(cookies, resp.Cookies()...)
 
@@ -60,7 +60,7 @@ func orderItemWithCustomer(name, phone string) {
 
 	log.Info("Confirming payment method for the new order")
 	req = prepareConfirmOrderRequest(responseBody.Redirect, cookies)
-	resp, body = web.SendRequest(req, false)
+	resp, body = web.SendRequest(req)
 
 	saveOrderHistory(name, phone, itemId)
 	log.Info("Sent order successfully")
@@ -165,7 +165,7 @@ func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Req
 
 func getCookies(link string) []*http.Cookie {
 	log.Info("Fetching cookies to build order request")
-	cookies := web.FetchCookies(link, false)
+	cookies := web.FetchCookies(link)
 	return cookies
 }
 
@@ -174,7 +174,7 @@ func findRandomItem() (id string, link string) {
 
 	log.Info("Fetching random item from category " + randomCategory)
 
-	page := web.GetUrl(randomCategory, false)
+	page := web.GetUrl(randomCategory)
 
 	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())

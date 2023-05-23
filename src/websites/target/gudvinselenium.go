@@ -8,71 +8,82 @@ import (
 	"time"
 )
 
-func Example() {
-	// Start a Selenium WebDriver service (e.g., ChromeDriver, GeckoDriver, etc.)
-	// Replace "geckodriver" with the appropriate WebDriver executable for Tor browser
+type Selenium struct {
+	service *selenium.Service
+	driver  *selenium.WebDriver
+}
+
+func Connect(url string) Selenium {
 	const port = 4444
 
 	service, err := selenium.NewGeckoDriverService("files/geckodriver.exe", port)
 	if err != nil {
-		log.Fatalf("Failed to start the WebDriver service: %v", err)
+		log.Errorf("Failed to start the WebDriver service: %v", err)
+		panic(err)
 	}
-	defer service.Stop()
 
-	// Create capabilities for Tor browser
 	caps := selenium.Capabilities{
 		"browserName": "firefox",
 	}
-	//caps.AddProxy(selenium.Proxy{
-	//	Type:         selenium.Manual,
-	//	SOCKS:        "127.0.0.1:1080",
-	//	SOCKSVersion: 5,
-	//})
-
-	prefs := map[string]interface{}{}
-	prefs["network.proxy.type"] = 1
-	prefs["network.proxy.socks"] = "localhost"
-	prefs["network.proxy.socks_port"] = 1080
-
-	ffCaps := firefox.Capabilities{
-		Prefs:  prefs,
-		Binary: "C:\\Projects\\Tor Browser11\\Browser\\firefox.exe",
-	}
-	//
-	//err = ffCaps.SetProfile("files/profile/profile.default")
-	err = ffCaps.SetProfile("C:\\Projects\\Tor Browser11\\Browser\\TorBrowser\\Data\\Browser\\profile.default")
+	ffCaps := firefox.Capabilities{}
+	err = ffCaps.SetProfile("files/a4r2akqa.SeleniumFF")
 	caps.AddFirefox(ffCaps)
 
 	// Start a Tor browser session
 	webDriver, err := selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d", port))
 	if err != nil {
-		log.Fatalf("Failed to start the Tor browser session: %v", err)
+		log.Errorf("Failed to start the Tor browser session: %v", err)
+		panic(err)
 	}
-	defer webDriver.Quit()
-	webDriver.SetPageLoadTimeout(time.Second * 120)
+	webDriver.SetPageLoadTimeout(time.Second * 60)
 
-	connectButton, err := webDriver.FindElement(selenium.ByCSSSelector, "#connectButton")
-
-	jsCode := "arguments[0].removeAttribute(arguments[1]);"
-	_, err = webDriver.ExecuteScript(jsCode, []interface{}{connectButton, "hidden"})
+	err = webDriver.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Failed to navigate to Google: %v", err)
+		panic(err)
 	}
-	//jsCode := "arguments[0].click();"
-	//_, err = webDriver.ExecuteScript(jsCode, []interface{}{connectButton})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//err = connectButton.Click()
 
-	time.Sleep(time.Second * 10)
-	// Navigate to Google
-	err = webDriver.Get("https://recaptcha-demo.appspot.com/recaptcha-v2-checkbox-explicit.php")
+	return Selenium{service: service, driver: &webDriver}
+}
+
+func (s *Selenium) Close() {
+	s.service.Stop()
+	(*s.driver).Quit()
+}
+
+func (s *Selenium) Click(selector string) {
+	webDriver := *s.driver
+	element, err := webDriver.FindElement(selenium.ByCSSSelector, selector)
 	if err != nil {
-		log.Fatalf("Failed to navigate to Google: %v", err)
+		log.Errorf("Failed to find element with selector: %q, %v", selector, err)
+		panic(err)
 	}
 
-	// Find the search input element and enter the search query
+	err = element.Click()
+	if err != nil {
+		log.Errorf("Failed to click element: %v", err)
+		panic(err)
+	}
+}
+
+func (s *Selenium) Input(selector, value string) {
+	webDriver := *s.driver
+	element, err := webDriver.FindElement(selenium.ByCSSSelector, selector)
+	if err != nil {
+		log.Errorf("Failed to find element with selector: %q, %v", selector, err)
+		panic(err)
+	}
+
+	err = element.SendKeys(value)
+	if err != nil {
+		log.Errorf("Failed to input: %v", err)
+		panic(err)
+	}
+}
+
+func (s *Selenium) SolveCaptcha() {
+	webDriver := *s.driver
+
 	captcha, err := webDriver.FindElement(selenium.ByCSSSelector, "iframe[title='reCAPTCHA']")
 	if err != nil {
 		log.Fatalf("Failed to find  captcha: %v", err)
@@ -96,28 +107,6 @@ func Example() {
 	if err != nil {
 		log.Fatalf("Failed to find the search input element: %v", err)
 	}
+
 	button.Click()
-
-	// Wait for the search results to load
-	//time.Sleep(2 * time.Second)
-
-	//
-	//searchResults, err := webDriver.FindElements(selenium.ByCSSSelector, "div.r a")
-	//if err != nil {
-	//	log.Fatalf("Failed to find the search result links: %v", err)
-	//}
-	//
-	//// Select a random search result from the first page
-	//rand.Seed(time.Now().UnixNano())
-	//randomIndex := rand.Intn(len(searchResults))
-	//randomResult := searchResults[randomIndex]
-	//
-	//// Click on the random search result
-	//err = randomResult.Click()
-	//if err != nil {
-	//	log.Fatalf("Failed to click on the random search result: %v", err)
-	//}
-
-	// Wait for some time to see the result
-	time.Sleep(5 * time.Second)
 }

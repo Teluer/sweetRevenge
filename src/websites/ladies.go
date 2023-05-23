@@ -28,7 +28,7 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
 	for _, ladyCategory := range ladiesUrls {
 		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
 			log.Info("Fetching lady list from " + currentUrl)
-			page := web.GetUrl(currentUrl, false)
+			page := web.GetUrl(currentUrl)
 			ladyUrls, hasNextPage := parseLadiesList(page)
 			if len(ladyUrls) > 0 {
 				urls = append(urls, ladyUrls...)
@@ -46,7 +46,7 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
 	for _, url := range urls {
 		url = ladiesBaseUrl + url
 		request := getRequestWithPopupBypass(url)
-		ad := web.GetRequest(request, true)
+		ad := web.GetRequest(request)
 		lady := getLady(ad)
 		if lady.Phone != "" {
 			ladies = append(ladies, lady)

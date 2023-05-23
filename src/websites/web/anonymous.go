@@ -14,12 +14,6 @@ type TorSession struct {
 
 const proxyAddr = "127.0.0.1:1080"
 
-var currentSession *TorSession
-
-func init() {
-	openNewSession()
-}
-
 func openNewSession() *TorSession {
 	log.Info("Opening TOR session")
 	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
@@ -38,11 +32,10 @@ func openNewSession() *TorSession {
 		},
 	}
 	log.Info("Established TOR session successfully")
-	currentSession = &ts
 	return &ts
 }
 
-func (ts TorSession) anonymousRequest(req *http.Request) (*http.Response, []byte) {
+func (ts *TorSession) anonymousRequest(req *http.Request) (*http.Response, []byte) {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")
@@ -60,7 +53,7 @@ func (ts TorSession) anonymousRequest(req *http.Request) (*http.Response, []byte
 	return resp, body
 }
 
-func (ts TorSession) getAnonymously(url string) (*http.Response, []byte) {
+func (ts *TorSession) getAnonymously(url string) (*http.Response, []byte) {
 	if ts.client == nil {
 		log.Error("Tor client not initialized")
 		panic("need to init client first!")

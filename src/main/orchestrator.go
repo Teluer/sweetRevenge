@@ -31,7 +31,7 @@ func programLogic(cfg config.Config) {
 	go updateLadiesRoutine(cfg.LadiesCfg)
 
 	//everything ready, start sending orders
-	//go sendOrdersRoutine(cfg.OrdersRoutineCfg)
+	go sendOrdersRoutine(cfg.OrdersRoutineCfg)
 }
 
 func manualOrdersRoutine(cfg config.RabbitConfig) {
