@@ -59,9 +59,13 @@ func orderItemWithCustomer(name, phone string) {
 		return
 	}
 
-	log.Info("Confirming payment method for the new order")
-	req = prepareConfirmOrderRequest(responseBody.Redirect, cookies)
-	resp, body = web.SendRequest(req)
+	log.Info("Confirming payment method for the new order " +
+		"(NOT, because the website disabled this button)")
+
+	//todo: follow redirect to make it look legit
+
+	//req = prepareConfirmOrderRequest(responseBody.Redirect, cookies)
+	//resp, body = web.SendRequest(req)
 
 	saveOrderHistory(name, phone, itemId)
 	log.Info("Sent order successfully")
@@ -201,17 +205,17 @@ func createRandomCustomer() (name string, phone string) {
 	log.Info("Generating a random customer name/phone combination")
 
 	//write phones in random formats
-	phone = dao.GetLeastUsedPhone()
+	phone = dao.Dao.GetLeastUsedPhone()
 	prefixIndex := rand.Intn(len(orderCfg.PhonePrefixes))
 	phone = orderCfg.PhonePrefixes[prefixIndex] + phone
 
 	//names should look random as well
-	name = dao.GetLeastUsedFirstName()
+	name = dao.Dao.GetLeastUsedFirstName()
 	if !evaluateProbability(firstNameOnlyIncidence) {
 		if evaluateProbability(firstNameAfterLastNameIncidence) {
-			name = dao.GetLeastUsedLastName() + " " + name
+			name = dao.Dao.GetLeastUsedLastName() + " " + name
 		} else {
-			name = name + " " + dao.GetLeastUsedLastName()
+			name = name + " " + dao.Dao.GetLeastUsedLastName()
 		}
 	}
 	if evaluateProbability(nameLowerCaseIncidence) {
@@ -233,5 +237,5 @@ func saveOrderHistory(name, phone, itemId string) {
 		OrderDateTime: time.Now(),
 	}
 
-	dao.Insert(&record)
+	dao.Dao.Insert(&record)
 }

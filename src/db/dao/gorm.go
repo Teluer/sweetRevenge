@@ -7,13 +7,13 @@ import (
 	"sweetRevenge/src/db/dto"
 )
 
-type GormDao struct {
+type gormDao struct {
 	db *gorm.DB
 }
 
-var dao = open()
+var Dao gormDao
 
-func open() *GormDao {
+func (d *gormDao) OpenDatabaseConnection() {
 	log.Info("Opening connection to DB")
 	dsn := "goblin:password1!@tcp(host.docker.internal:3306)/sweet?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -21,27 +21,27 @@ func open() *GormDao {
 		log.Error("Failed to connect to DB")
 		panic(err)
 	}
-	return &GormDao{db}
+	d.db = db
 }
 
-func AutoMigrateAll() {
-	dao.db.AutoMigrate(
+func (d *gormDao) AutoMigrateAll() {
+	d.db.AutoMigrate(
 		&dto.FirstName{},
 		&dto.LastName{},
 		&dto.Lady{},
 		&dto.OrderHistory{})
 }
 
-func Insert(obj any) {
+func (d *gormDao) Insert(obj any) {
 	log.WithField("obj", obj).Debug("Inserting data")
-	dao.db.Create(obj)
+	d.db.Create(obj)
 }
 
-func Delete(obj any) {
+func (d *gormDao) Delete(obj any) {
 	log.WithField("obj", obj).Debug("Deleting data")
-	dao.db.Where("1 = 1").Delete(obj)
+	d.db.Where("1 = 1").Delete(obj)
 }
 
-func IsTableEmpty(obj any) bool {
-	return dao.db.Limit(1).Find(obj).RowsAffected == 0
+func (d *gormDao) IsTableEmpty(obj any) bool {
+	return d.db.Limit(1).Find(obj).RowsAffected == 0
 }

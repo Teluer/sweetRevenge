@@ -20,7 +20,7 @@ func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
 	log.Info("Ladies update triggered")
 	ladies := getLadies(ladiesBaseUrl, ladiesUrls)
 	log.Info(fmt.Sprintf("Found %d ladies", len(ladies)))
-	dao.SaveNewLadies(ladies)
+	dao.Dao.SaveNewLadies(ladies)
 }
 
 func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {

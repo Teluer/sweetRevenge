@@ -7,25 +7,25 @@ import (
 )
 
 // deprecated
-func SaveNewLadies1(ladies []dto.Lady) {
+func (d *gormDao) SaveNewLadies1(ladies []dto.Lady) {
 	//remove all old records to avoid outdated phones
-	if len(ladies) > 0 && !IsTableEmpty(&dto.Lady{}) {
-		Delete(&dto.Lady{})
-		Insert(&ladies)
+	if len(ladies) > 0 && !d.IsTableEmpty(&dto.Lady{}) {
+		d.Delete(&dto.Lady{})
+		d.Insert(&ladies)
 		return
 	}
 }
 
-func SaveNewLadies(ladies []dto.Lady) {
+func (d *gormDao) SaveNewLadies(ladies []dto.Lady) {
 	log.Info("Saving new ladies")
-	if IsTableEmpty(&dto.Lady{}) {
+	if d.IsTableEmpty(&dto.Lady{}) {
 		log.Info("Ladies table is empty, populating")
-		Insert(&ladies)
+		d.Insert(&ladies)
 		return
 	}
 	log.Info("Ladies table has values, adding new, deleting outdated")
 
-	phones := SelectPhones()
+	phones := d.SelectPhones()
 	var newLadies []dto.Lady
 	var outdatedLadies []dto.Lady
 
@@ -50,21 +50,21 @@ OUTDATED_LOOP:
 	}
 
 	log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
-	Insert(&newLadies)
+	d.Insert(&newLadies)
 	//log.Info(fmt.Sprintf("Deleting %d ladies", len(outdatedLadies)))
 	//Delete(&outdatedLadies)
 }
 
-func SelectPhones() []string {
+func (d *gormDao) SelectPhones() []string {
 	var result []string
-	dao.db.Model(&dto.Lady{}).Pluck("phone", &result)
+	d.db.Model(&dto.Lady{}).Pluck("phone", &result)
 	return result
 }
 
-func GetLeastUsedPhone() string {
+func (d *gormDao) GetLeastUsedPhone() string {
 	var lady dto.Lady
-	dao.db.Order("used_times asc").First(&lady)
+	d.db.Order("used_times asc").First(&lady)
 	lady.UsedTimes++
-	dao.db.Save(&lady)
+	d.db.Save(&lady)
 	return lady.Phone
 }

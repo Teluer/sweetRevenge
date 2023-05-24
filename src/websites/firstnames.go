@@ -11,10 +11,10 @@ import (
 
 func UpdateFirstNamesRoutine(wg *sync.WaitGroup, firstNamesUrl string) {
 	log.Info("Updating first names if needed")
-	if dao.IsTableEmpty(&dto.FirstName{}) {
+	if dao.Dao.IsTableEmpty(&dto.FirstName{}) {
 		log.Info("First names table empty, updating")
 		names := fetchFirstNames(firstNamesUrl)
-		dao.Insert(&names)
+		dao.Dao.Insert(&names)
 	}
 	wg.Done()
 }

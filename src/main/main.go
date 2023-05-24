@@ -8,6 +8,7 @@ import (
 	"os"
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
+	"sweetRevenge/src/rabbitmq"
 	"time"
 )
 
@@ -28,15 +29,19 @@ func init() {
 func main() {
 	log.Info("Program Startup")
 
-	dao.AutoMigrateAll()
-
 	p := properties.MustLoadFile("config.properties", properties.UTF8)
 	var cfg config.Config
 	if err := p.Decode(&cfg); err != nil {
 		log.WithError(err).Fatal("Failed to parse configs")
 	}
+	
+	//TODO: not smart to keep one connection for the entire lifecycle
+	dao.Dao.OpenDatabaseConnection()
+	dao.Dao.AutoMigrateAll()
 
-	programLogic(cfg)
+	rabbitmq.InitializeRabbitMq(cfg.Rabbit)
+
+	programLogic(&cfg)
 
 	//wait indefinitely
 	select {}

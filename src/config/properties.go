@@ -20,6 +20,7 @@ type OrdersRoutineConfig struct {
 	DayStart              time.Duration `properties:"DayStart"`
 	DayEnd                time.Duration `properties:"DayEnd"`
 	TimeZone              string        `properties:"TimeZone"`
+	SendOrdersEnabled     bool          `properties:"orders.enabled""`
 	OrdersCfg             OrdersConfig
 }
 

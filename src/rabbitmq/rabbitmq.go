@@ -10,9 +10,13 @@ import (
 	"time"
 )
 
-var rabbitPool *pool.Pool
+var rabbit struct {
+	rabbitPool *pool.Pool
+	queue      string
+}
 
 func InitializeRabbitMq(cfg config.RabbitConfig) {
+	log.Info("Initializing rabbitmq connection")
 	//wait for rabbitmq to initialize
 	TestConnection(cfg.Host)
 
@@ -32,7 +36,9 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 	if err != nil {
 		log.Error("Failed to create RabbitMQ connection pool: %v", err)
 	}
-	rabbitPool = &connPool
+
+	rabbit.rabbitPool = &connPool
+	rabbit.queue = cfg.QueueName
 
 	// Declare queue
 	ch := GetChannel()
@@ -63,14 +69,15 @@ func TestConnection(url string) bool {
 			return true
 		}
 
-		log.Errorf("Failed to connect to RabbitMQ: %v", err)
+		log.Warn("Failed to connect to RabbitMQ: %v", err)
 		time.Sleep(retryTimeout)
 	}
+	log.Error("Failed to connect to connect to RabbitMQ after %d attempts!", maxRetries)
 	return false
 }
 
 func GetChannel() *amqp.Channel {
-	conn, err := (*rabbitPool).Get()
+	conn, err := (*rabbit.rabbitPool).Get()
 	if err != nil {
 		log.Panic("Failed to acquire connection from pool:", err)
 		panic(err)
@@ -88,32 +95,32 @@ func GetChannel() *amqp.Channel {
 	return ch
 }
 
-func ConsumeManualOrder(queue string) *ManualOrder {
+func ConsumeManualOrder() *ManualOrder {
 	defer util.RecoverAndLogError("RabbitMq")
 
 	ch := GetChannel()
 	defer ch.Close()
 	messages, err := ch.Consume(
-		queue,    // queue
-		"orders", // consumer
-		true,     // auto-acknowledge messages
-		false,    // exclusive
-		false,    // no-local
-		false,    // no-wait
-		nil,      // arguments
+		rabbit.queue, // queue
+		"orders",     // consumer
+		true,         // auto-acknowledge messages
+		false,        // exclusive
+		false,        // no-local
+		false,        // no-wait
+		nil,          // arguments
 	)
 	if err != nil {
-		log.Error("Failed to register a consumer: %v", err)
+		log.Errorf("Failed to register a consumer: %v", err)
 		panic(err)
 	}
 
 	message := <-messages
-	log.Printf("Received message: %s", string(message.Body))
+	log.Infof("Received message: %s", string(message.Body))
 
 	var manualOrder ManualOrder
 	err = json.Unmarshal(message.Body, &manualOrder)
 	if err != nil {
-		log.Error("Failed to unmarshal message: %v", err)
+		log.Errorf("Failed to unmarshal message: %v", err)
 		// Handle unmarshal error
 		return nil
 	}
@@ -121,25 +128,32 @@ func ConsumeManualOrder(queue string) *ManualOrder {
 }
 
 // TODO: implement this when there is admin panel
-//func Publish(queue string) {
-//	// RabbitMQ connection URL
-//	ch := GetChannel()
-//	defer ch.Close()
-//
-//	// Publish a message to the queue
-//	message := "Hello, RabbitMQ!"
-//	err := ch.Publish(
-//		"",    // exchange
-//		queue, // routing key
-//		false, // mandatory
-//		false, // immediate
-//		amqp.Publishing{
-//			ContentType: "text/plain",
-//			Body:        []byte(message),
-//		})
-//	if err != nil {
-//		log.Error("Failed to publish a message: %v", err)
-//	} else {
-//		log.Infof("Message sent: %s", message)
-//	}
-//}
+func Publish(order *ManualOrder) error {
+	// RabbitMQ connection URL
+	ch := GetChannel()
+	defer ch.Close()
+
+	// Publish a message to the queue
+	message, err := json.Marshal(*order)
+	if err != nil {
+		log.Error("Failed to marshal manual order!")
+		return err
+	}
+
+	err = ch.Publish(
+		"",           // exchange
+		rabbit.queue, // routing key
+		false,        // mandatory
+		false,        // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        message,
+		})
+	if err != nil {
+		log.Error("Failed to publish a message: %v", err)
+		return err
+	} else {
+		log.Infof("Message sent: %s", message)
+	}
+	return nil
+}
