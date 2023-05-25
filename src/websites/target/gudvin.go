@@ -36,11 +36,11 @@ func OrderItem(cfg config.OrdersConfig) {
 }
 
 func orderItemWithCustomer(name, phone string) {
+	PanicIfVpnNotEnabled()
+
 	itemId, link := findRandomItem()
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s)",
 		name, phone, itemId))
-
-	PanicIfVpnNotEnabled()
 
 	selenium := Connect(link)
 	defer selenium.Close()
@@ -81,7 +81,7 @@ func findRandomItem() (id string, link string) {
 
 	log.Info("Fetching random item from category " + randomCategory)
 
-	page := web.GetUrl(randomCategory)
+	page := web.GetUrlUnsafe(randomCategory)
 
 	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())

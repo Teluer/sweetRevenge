@@ -59,14 +59,12 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 
 	//sleeping at first to avoid order spamming due to multiple restarts
 	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-	//log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
-	//time.Sleep(sleepDuration)
+	log.Info("sendOrdersRoutine: sending order in ", int(sleepDuration/time.Minute), " minutes")
+	time.Sleep(sleepDuration)
 
 	for {
 		log.Info("sendOrdersRoutine: Order flow triggered")
 		sleepAtNight(cfg)
-
-		jobStart := time.Now()
 
 		//is everything in place to make orders
 		readyToGo := !(dao.Dao.IsTableEmpty(&dto2.FirstName{}) ||
@@ -75,7 +73,7 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			legacy.OrderItem(cfg.OrdersCfg)
+			go legacy.OrderItem(cfg.OrdersCfg)
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")
@@ -85,8 +83,7 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 			}
 		}
 
-		jobDuration := time.Now().Sub(jobStart)
-		sleepDuration = time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
+		sleepDuration = time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
 		log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
 		time.Sleep(sleepDuration)
 	}

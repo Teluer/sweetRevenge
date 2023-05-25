@@ -39,15 +39,17 @@ func OrderItem(cfg config.OrdersConfig) {
 }
 
 func orderItemWithCustomer(name, phone string) {
-	itemId, link := findRandomItem()
+	tor := web.OpenAnonymousSession()
+
+	itemId, link := findRandomItem(tor)
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
 		name, phone, itemId, link, orderCfg.TargetOrderLink))
 
-	cookies := getCookies(link)
+	cookies := getCookies(tor, link)
 	log.Info("Got cookies: ", cookies)
 
 	req := prepareOrderRequest(orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
-	resp, body := web.SendRequest(req)
+	resp, body := tor.SendRequest(req)
 	log.Info(string(body))
 	cookies = append(cookies, resp.Cookies()...)
 
@@ -59,13 +61,15 @@ func orderItemWithCustomer(name, phone string) {
 		return
 	}
 
+	//todo: check referer
+	req = prepareConfirmOrderGetRequest(responseBody.Redirect, link, cookies)
+	resp, _ = tor.SendRequest(req)
+	cookies = append(cookies, resp.Cookies()...)
+
 	log.Info("Confirming payment method for the new order " +
 		"(NOT, because the website disabled this button)")
-
-	//todo: follow redirect to make it look legit
-
 	//req = prepareConfirmOrderRequest(responseBody.Redirect, cookies)
-	//resp, body = web.SendRequest(req)
+	//resp, body = tor.SendRequest(req)
 
 	saveOrderHistory(name, phone, itemId)
 	log.Info("Sent order successfully")
@@ -133,6 +137,35 @@ func prepareOrderRequest(target, name, phone, itemId, referer string, cookies []
 	return request
 }
 
+func prepareConfirmOrderGetRequest(target, referer string, cookies []*http.Cookie) *http.Request {
+	request, err := http.NewRequest("GET", target, nil)
+	if err != nil {
+		log.WithError(err).Error("Failed to create request for order!")
+		panic("failed to create request!")
+	}
+
+	//set cookies previously returned by the server
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+
+	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	request.Header.Set("Origin", "https://gudvin.md")
+	request.Header.Set("Connection", "keep-alive")
+	request.Header.Set("Referer", referer)
+	request.Header.Set("Sec-Fetch-Dest", "document")
+	request.Header.Set("Upgrade-Insecure-Requests", "1")
+	request.Header.Set("Sec-Fetch-Mode", "navigate")
+	request.Header.Set("Sec-Fetch-Site", "same-origin")
+	request.Header.Set("Sec-Fetch-User", "?1")
+
+	return request
+}
+
 func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
 	formData := url.Values{}
 	formData.Set("payment_method_id", "23")
@@ -168,18 +201,18 @@ func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Req
 	return request
 }
 
-func getCookies(link string) []*http.Cookie {
+func getCookies(tor *web.AnonymousSession, link string) []*http.Cookie {
 	log.Info("Fetching cookies to build order request")
-	cookies := web.FetchCookies(link)
+	cookies := tor.FetchCookies(link)
 	return cookies
 }
 
-func findRandomItem() (id string, link string) {
+func findRandomItem(tor *web.AnonymousSession) (id string, link string) {
 	randomCategory := orderCfg.TargetCategories[rand.Intn(len(orderCfg.TargetCategories))]
 
 	log.Info("Fetching random item from category " + randomCategory)
 
-	page := web.GetUrl(randomCategory)
+	page := tor.GetUrl(randomCategory)
 
 	items := page.Find("a.product_preview__name_link")
 	randomItem := rand.Intn(items.Length())

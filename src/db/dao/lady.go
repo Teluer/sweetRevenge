@@ -23,7 +23,7 @@ func (d *gormDao) SaveNewLadies(ladies []dto.Lady) {
 		d.Insert(&ladies)
 		return
 	}
-	log.Info("Ladies table has values, adding new, deleting outdated")
+	log.Info("Ladies table has values, adding new")
 
 	phones := d.SelectPhones()
 	var newLadies []dto.Lady
@@ -63,7 +63,7 @@ func (d *gormDao) SelectPhones() []string {
 
 func (d *gormDao) GetLeastUsedPhone() string {
 	var lady dto.Lady
-	d.db.Order("used_times asc").First(&lady)
+	d.db.Order("used_times asc, rand()").First(&lady)
 	lady.UsedTimes++
 	d.db.Save(&lady)
 	return lady.Phone

@@ -9,6 +9,10 @@ import (
 	"net/http"
 )
 
+type AnonymousSession struct {
+	session *TorSession
+}
+
 func GetUrlUnsafe(url string) *goquery.Document {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -35,26 +39,6 @@ func GetRequestUnsafe(req *http.Request) *goquery.Document {
 	return extractDocumentFromResponseBody(body)
 }
 
-func SendRequest(req *http.Request) (response *http.Response, body []byte) {
-	return openNewSession().anonymousRequest(req)
-}
-
-func GetUrl(url string) *goquery.Document {
-	_, responseBody := openNewSession().getAnonymously(url)
-	return extractDocumentFromResponseBody(responseBody)
-}
-
-func GetRequest(req *http.Request) *goquery.Document {
-	_, body := SendRequest(req)
-	return extractDocumentFromResponseBody(body)
-}
-
-func FetchCookies(url string) []*http.Cookie {
-	var resp *http.Response
-	resp, _ = openNewSession().getAnonymously(url)
-	return resp.Cookies()
-}
-
 func extractDocumentFromResponseBody(body []byte) *goquery.Document {
 	reader := bytes.NewReader(body)
 	doc, err := goquery.NewDocumentFromReader(reader)
@@ -64,4 +48,30 @@ func extractDocumentFromResponseBody(body []byte) *goquery.Document {
 	}
 
 	return doc
+}
+
+func OpenAnonymousSession() *AnonymousSession {
+	return &AnonymousSession{
+		session: openNewSession(),
+	}
+}
+
+func (as *AnonymousSession) SendRequest(req *http.Request) (response *http.Response, body []byte) {
+	return as.session.anonymousRequest(req)
+}
+
+func (as *AnonymousSession) GetUrl(url string) *goquery.Document {
+	_, responseBody := as.session.getAnonymously(url)
+	return extractDocumentFromResponseBody(responseBody)
+}
+
+func (as *AnonymousSession) GetRequest(req *http.Request) *goquery.Document {
+	_, body := as.SendRequest(req)
+	return extractDocumentFromResponseBody(body)
+}
+
+func (as *AnonymousSession) FetchCookies(url string) []*http.Cookie {
+	var resp *http.Response
+	resp, _ = as.session.getAnonymously(url)
+	return resp.Cookies()
 }
