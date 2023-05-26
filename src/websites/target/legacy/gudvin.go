@@ -62,6 +62,7 @@ func orderItemWithCustomer(name, phone string) {
 	}
 
 	//todo: check referer
+	log.Info("Visiting order page to reproduce user behaviour")
 	req = prepareConfirmOrderGetRequest(responseBody.Redirect, link, cookies)
 	resp, _ = tor.SendRequest(req)
 	cookies = append(cookies, resp.Cookies()...)

@@ -77,7 +77,7 @@ var templ = `<!DOCTYPE html>
     </html>`
 
 type formData struct {
-	OrdersInterval int
+	OrdersInterval float64
 	OrdersEnabled  bool
 }
 
@@ -88,7 +88,7 @@ func ControlPanel(cfg *config.OrdersRoutineConfig) {
 	http.HandleFunc("/conf", configHandler(cfg))
 	http.HandleFunc("/order", orderHandler)
 
-	log.Error(http.ListenAndServe("localhost:8000", nil))
+	log.Error(http.ListenAndServe("0.0.0.0:8008", nil))
 }
 
 // handler echoes the Path component of the request URL r.
@@ -99,7 +99,7 @@ func controlPanelHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWrit
 		log.Info("Accessing control panel from: ", r.RemoteAddr)
 
 		data := &formData{
-			OrdersInterval: int(cfg.SendOrdersMaxInterval.Minutes()),
+			OrdersInterval: float64(cfg.SendOrdersMaxInterval.Nanoseconds()) / float64(time.Minute),
 			OrdersEnabled:  cfg.SendOrdersEnabled,
 		}
 
@@ -121,12 +121,13 @@ func controlPanelHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWrit
 func configHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//imagine error handling here
-		frequencyMinutes, _ := strconv.Atoi(r.FormValue("frequency"))
+		frequencyMinutes, _ := strconv.ParseFloat(r.FormValue("frequency"), 64)
 		ordersEnabled := r.FormValue("shouldSend") == "on"
 
-		cfg.SendOrdersMaxInterval = time.Minute * time.Duration(frequencyMinutes)
+		cfg.SendOrdersMaxInterval = time.Duration(float64(time.Minute) * frequencyMinutes)
 		cfg.SendOrdersEnabled = ordersEnabled
 
+		log.Infof("Updated configs: interval=%v, sending=%v", cfg.SendOrdersMaxInterval, cfg.SendOrdersEnabled)
 		message := "Configs updated. changes will take effect after the next scheduled order is sent!"
 		w.Write([]byte(message))
 	}

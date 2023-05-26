@@ -6,17 +6,7 @@ import (
 	"sweetRevenge/src/db/dto"
 )
 
-// deprecated
-func (d *gormDao) SaveNewLadies1(ladies []dto.Lady) {
-	//remove all old records to avoid outdated phones
-	if len(ladies) > 0 && !d.IsTableEmpty(&dto.Lady{}) {
-		d.Delete(&dto.Lady{})
-		d.Insert(&ladies)
-		return
-	}
-}
-
-func (d *gormDao) SaveNewLadies(ladies []dto.Lady) {
+func (d *GormDao) SaveNewLadies(ladies []dto.Lady) {
 	log.Info("Saving new ladies")
 	if d.IsTableEmpty(&dto.Lady{}) {
 		log.Info("Ladies table is empty, populating")
@@ -55,13 +45,13 @@ OUTDATED_LOOP:
 	//Delete(&outdatedLadies)
 }
 
-func (d *gormDao) SelectPhones() []string {
+func (d *GormDao) SelectPhones() []string {
 	var result []string
 	d.db.Model(&dto.Lady{}).Pluck("phone", &result)
 	return result
 }
 
-func (d *gormDao) GetLeastUsedPhone() string {
+func (d *GormDao) GetLeastUsedPhone() string {
 	var lady dto.Lady
 	d.db.Order("used_times asc, rand()").First(&lady)
 	lady.UsedTimes++

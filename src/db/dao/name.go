@@ -4,7 +4,7 @@ import (
 	dto2 "sweetRevenge/src/db/dto"
 )
 
-func (d *gormDao) GetLeastUsedFirstName() string {
+func (d *GormDao) GetLeastUsedFirstName() string {
 	var name dto2.FirstName
 	d.db.Order("used_times asc, rand()").First(&name)
 	name.UsedTimes++
@@ -12,7 +12,7 @@ func (d *gormDao) GetLeastUsedFirstName() string {
 	return name.FirstName
 }
 
-func (d *gormDao) GetLeastUsedLastName() string {
+func (d *GormDao) GetLeastUsedLastName() string {
 	var name dto2.LastName
 	d.db.Order("used_times asc, rand()").First(&name)
 	name.UsedTimes++

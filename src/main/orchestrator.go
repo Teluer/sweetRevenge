@@ -59,7 +59,7 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 
 	//sleeping at first to avoid order spamming due to multiple restarts
 	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-	log.Info("sendOrdersRoutine: sending order in ", int(sleepDuration/time.Minute), " minutes")
+	log.Infof("sendOrdersRoutine: sending order in %.2f minutes", float64(sleepDuration/time.Minute))
 	time.Sleep(sleepDuration)
 
 	for {
@@ -83,8 +83,8 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 			}
 		}
 
-		sleepDuration = time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-		log.Info("sendOrdersRoutine: sleeping for ", int(sleepDuration/time.Minute), " minutes")
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+		log.Infof("sendOrdersRoutine: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)
 	}
 }
