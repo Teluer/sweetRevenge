@@ -241,8 +241,9 @@ func createRandomCustomer() (name string, phone string) {
 
 	//write phones in random formats
 	phone = dao.Dao.GetLeastUsedPhone()
-	prefixIndex := rand.Intn(len(orders.orderCfg.PhonePrefixes))
-	phone = orders.orderCfg.PhonePrefixes[prefixIndex] + phone
+	prefixes := strings.Split(orders.orderCfg.PhonePrefixes, ";")
+	prefixIndex := rand.Intn(len(prefixes))
+	phone = prefixes[prefixIndex] + phone
 
 	//names should look random as well
 	name = dao.Dao.GetLeastUsedFirstName()

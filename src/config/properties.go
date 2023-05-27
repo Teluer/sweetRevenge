@@ -26,7 +26,8 @@ type OrdersRoutineConfig struct {
 }
 
 type OrdersConfig struct {
-	PhonePrefixes    []string `properties:"phone.prefixes"`
+	//loading string array as string to avoid space trimming by the properties lib
+	PhonePrefixes    string   `properties:"phone.prefixes"`
 	TargetBaselink   string   `properties:"target.base"`
 	TargetOrderLink  string   `properties:"target.order"`
 	TargetCategories []string `properties:"target.categories"`
