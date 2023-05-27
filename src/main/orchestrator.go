@@ -21,19 +21,19 @@ func programLogic(cfg *config.Config) {
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go websites.UpdateLastNamesRoutine(&wg, cfg.LastNamesUrl)
-	go websites.UpdateFirstNamesRoutine(&wg, cfg.FirstNamesUrl)
+	go websites.UpdateLastNames(&wg, cfg.LastNamesUrl)
+	go websites.UpdateFirstNames(&wg, cfg.FirstNamesUrl)
 	wg.Wait()
 
-	go manualOrdersRoutine()
-	go updateLadiesRoutine(cfg.LadiesCfg)
+	go manualOrdersJob()
+	go updateLadiesJob(cfg.LadiesCfg, cfg.SocksProxyAddress)
 	//everything ready, start sending orders
-	go sendOrdersRoutine(&cfg.OrdersRoutineCfg)
+	go sendOrdersJob(&cfg.OrdersRoutineCfg, cfg.SocksProxyAddress)
 
-	go admin.ControlPanel(&cfg.OrdersRoutineCfg)
+	go admin.StartControlPanelServer(&cfg.OrdersRoutineCfg)
 }
 
-func manualOrdersRoutine() {
+func manualOrdersJob() {
 	log.Info("Starting manual orders RabbitMq listener")
 	for {
 		func() {
@@ -45,25 +45,25 @@ func manualOrdersRoutine() {
 	}
 }
 
-func updateLadiesRoutine(cfg config.LadiesConfig) {
+func updateLadiesJob(cfg config.LadiesConfig, socksProxy string) {
 	log.Info("Starting update ladies routine")
 	for {
-		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls)
-		log.Info("updateLadiesRoutine: sleeping for ", int(cfg.UpdateLadiesInterval/time.Minute), " minutes")
+		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
+		log.Info("updateLadiesJob: sleeping for ", int(cfg.UpdateLadiesInterval/time.Minute), " minutes")
 		time.Sleep(cfg.UpdateLadiesInterval)
 	}
 }
 
-func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
+func sendOrdersJob(cfg *config.OrdersRoutineConfig, socksProxy string) {
 	log.Info("Starting send orders routine")
 
 	//sleeping at first to avoid order spamming due to multiple restarts
 	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-	log.Infof("sendOrdersRoutine: sending order in %.2f minutes", float64(sleepDuration/time.Minute))
+	log.Infof("sendOrdersJob: sending order in %.2f minutes", float64(sleepDuration/time.Minute))
 	time.Sleep(sleepDuration)
 
 	for {
-		log.Info("sendOrdersRoutine: Order flow triggered")
+		log.Info("sendOrdersJob: Order flow triggered")
 		sleepAtNight(cfg)
 
 		//is everything in place to make orders
@@ -73,7 +73,7 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			go legacy.OrderItem(cfg.OrdersCfg)
+			go legacy.OrderItem(cfg.OrdersCfg, socksProxy)
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")
@@ -84,7 +84,7 @@ func sendOrdersRoutine(cfg *config.OrdersRoutineConfig) {
 		}
 
 		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-		log.Infof("sendOrdersRoutine: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
+		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)
 	}
 }
@@ -106,7 +106,7 @@ func sleepAtNight(cfg *config.OrdersRoutineConfig) {
 	} else {
 		return
 	}
-	log.Info("sendOrdersRoutine: Beyond work hours, sleeping until " +
+	log.Info("sendOrdersJob: Beyond work hours, sleeping until " +
 		time.Now().Add(sleepDuration).Format("2006-01-02 15:04:05"))
 	time.Sleep(sleepDuration)
 }

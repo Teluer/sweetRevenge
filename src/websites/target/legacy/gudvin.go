@@ -23,32 +23,33 @@ type OrderSuccess struct {
 	Redirect string `json:"redirect_location"`
 }
 
-// okay this is ugly but convenient
-var orderCfg config.OrdersConfig
-var manualOrders []*rabbitmq.ManualOrder
+var orders struct {
+	orderCfg     config.OrdersConfig
+	manualOrders []*rabbitmq.ManualOrder
+}
 
-func OrderItem(cfg config.OrdersConfig) {
+func OrderItem(cfg config.OrdersConfig, socksProxy string) {
 	defer util.RecoverAndLogError("Orders")
-	orderCfg = cfg
+	orders.orderCfg = cfg
 	//check manually prepared orders, if there are no manual orders then make random order
-	if !executeManualOrder() {
+	if !executeManualOrder(socksProxy) {
 		log.Info("Sending random order")
 		name, phone := createRandomCustomer()
-		orderItemWithCustomer(name, phone)
+		orderItemWithCustomer(name, phone, socksProxy)
 	}
 }
 
-func orderItemWithCustomer(name, phone string) {
-	tor := web.OpenAnonymousSession()
+func orderItemWithCustomer(name, phone, socksProxy string) {
+	tor := web.OpenAnonymousSession(socksProxy)
 
 	itemId, link := findRandomItem(tor)
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
-		name, phone, itemId, link, orderCfg.TargetOrderLink))
+		name, phone, itemId, link, orders.orderCfg.TargetOrderLink))
 
 	cookies := getCookies(tor, link)
 	log.Info("Got cookies: ", cookies)
 
-	req := prepareOrderRequest(orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
+	req := prepareOrderRequest(orders.orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
 	resp, body := tor.SendRequest(req)
 	log.Info(string(body))
 	cookies = append(cookies, resp.Cookies()...)
@@ -61,7 +62,6 @@ func orderItemWithCustomer(name, phone string) {
 		return
 	}
 
-	//todo: check referer
 	log.Info("Visiting order page to reproduce user behaviour")
 	req = prepareConfirmOrderGetRequest(responseBody.Redirect, link, cookies)
 	resp, _ = tor.SendRequest(req)
@@ -77,20 +77,20 @@ func orderItemWithCustomer(name, phone string) {
 }
 
 func QueueManualOrder(order *rabbitmq.ManualOrder) {
-	manualOrders = append(manualOrders, order)
+	orders.manualOrders = append(orders.manualOrders, order)
 }
 
-func executeManualOrder() bool {
+func executeManualOrder(socksProxy string) bool {
 	log.Info("Checking if should send manual orders")
-	if len(manualOrders) == 0 {
+	if len(orders.manualOrders) == 0 {
 		log.Info("Manual orders not found")
 		return false
 	}
 
-	order := manualOrders[0]
+	order := orders.manualOrders[0]
 	log.Info(fmt.Sprintf("Sending manual order for %s %s", order.Name, order.Phone))
-	orderItemWithCustomer(order.Name, order.Phone)
-	manualOrders = manualOrders[1:]
+	orderItemWithCustomer(order.Name, order.Phone, socksProxy)
+	orders.manualOrders = orders.manualOrders[1:]
 	return true
 }
 
@@ -209,7 +209,8 @@ func getCookies(tor *web.AnonymousSession, link string) []*http.Cookie {
 }
 
 func findRandomItem(tor *web.AnonymousSession) (id string, link string) {
-	randomCategory := orderCfg.TargetCategories[rand.Intn(len(orderCfg.TargetCategories))]
+	caregoryIndex := rand.Intn(len(orders.orderCfg.TargetCategories))
+	randomCategory := orders.orderCfg.TargetCategories[caregoryIndex]
 
 	log.Info("Fetching random item from category " + randomCategory)
 
@@ -226,7 +227,7 @@ func findRandomItem(tor *web.AnonymousSession) (id string, link string) {
 		return true
 	})
 
-	link = orderCfg.TargetBaselink + link
+	link = orders.orderCfg.TargetBaselink + link
 	log.Info("Will order the following item: " + id + " " + link)
 	return id, link
 }
@@ -240,8 +241,8 @@ func createRandomCustomer() (name string, phone string) {
 
 	//write phones in random formats
 	phone = dao.Dao.GetLeastUsedPhone()
-	prefixIndex := rand.Intn(len(orderCfg.PhonePrefixes))
-	phone = orderCfg.PhonePrefixes[prefixIndex] + phone
+	prefixIndex := rand.Intn(len(orders.orderCfg.PhonePrefixes))
+	phone = orders.orderCfg.PhonePrefixes[prefixIndex] + phone
 
 	//names should look random as well
 	name = dao.Dao.GetLeastUsedFirstName()

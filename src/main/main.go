@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-// TODO: add unit testing
 func main() {
 	log.Info("Program Startup")
 
@@ -31,7 +30,7 @@ func main() {
 	}
 
 	//TODO: not smart to keep one connection for the entire lifecycle
-	dao.Dao.OpenDatabaseConnection()
+	dao.Dao.OpenDatabaseConnection(cfg.DatabaseDsn)
 	dao.Dao.AutoMigrateAll()
 
 	rabbitmq.InitializeRabbitMq(cfg.Rabbit)

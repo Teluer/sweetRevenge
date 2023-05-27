@@ -50,9 +50,9 @@ func extractDocumentFromResponseBody(body []byte) *goquery.Document {
 	return doc
 }
 
-func OpenAnonymousSession() *AnonymousSession {
+func OpenAnonymousSession(proxy string) *AnonymousSession {
 	return &AnonymousSession{
-		session: openNewSession(),
+		session: openNewSession(proxy),
 	}
 }
 

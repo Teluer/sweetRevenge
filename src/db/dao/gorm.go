@@ -8,7 +8,7 @@ import (
 )
 
 type Database interface {
-	OpenDatabaseConnection()
+	OpenDatabaseConnection(string)
 	AutoMigrateAll()
 	Insert(obj any)
 	Delete(obj any)
@@ -27,9 +27,8 @@ type GormDao struct {
 
 var Dao Database = &GormDao{}
 
-func (d *GormDao) OpenDatabaseConnection() {
+func (d *GormDao) OpenDatabaseConnection(dsn string) {
 	log.Info("Opening connection to DB")
-	dsn := "goblin:password1!@tcp(host.docker.internal:3306)/sweet?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Error("Failed to connect to DB")

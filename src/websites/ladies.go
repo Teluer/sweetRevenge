@@ -14,18 +14,18 @@ import (
 	"time"
 )
 
-func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string) {
+func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) {
 	defer util.RecoverAndLogError("LadiesUpdate")
 
 	log.Info("Ladies update triggered")
-	ladies := getLadies(ladiesBaseUrl, ladiesUrls)
+	ladies := getLadies(ladiesBaseUrl, ladiesUrls, socksProxy)
 	log.Info(fmt.Sprintf("Found %d ladies", len(ladies)))
 	dao.Dao.SaveNewLadies(ladies)
 }
 
-func getLadies(ladiesBaseUrl string, ladiesUrls []string) (ladies []dto.Lady) {
+func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (ladies []dto.Lady) {
 	var urls []string
-	tor := web.OpenAnonymousSession()
+	tor := web.OpenAnonymousSession(socksProxy)
 	for _, ladyCategory := range ladiesUrls {
 		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
 			log.Info("Fetching lady list from " + currentUrl)

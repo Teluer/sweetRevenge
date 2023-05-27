@@ -81,7 +81,7 @@ type formData struct {
 	OrdersEnabled  bool
 }
 
-func ControlPanel(cfg *config.OrdersRoutineConfig) {
+func StartControlPanelServer(cfg *config.OrdersRoutineConfig) {
 	log.Infof("Starting Control Panel server at: %s", "localhost:8008/admin")
 
 	http.HandleFunc("/admin", controlPanelHandler(cfg)) // each request calls handler
@@ -91,9 +91,7 @@ func ControlPanel(cfg *config.OrdersRoutineConfig) {
 	log.Error(http.ListenAndServe("0.0.0.0:8008", nil))
 }
 
-// handler echoes the Path component of the request URL r.
 func controlPanelHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWriter, *http.Request) {
-	// Create a template from the HTML
 	return func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		log.Info("Accessing control panel from: ", r.RemoteAddr)

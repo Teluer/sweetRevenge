@@ -127,7 +127,6 @@ func ConsumeManualOrder() *ManualOrder {
 	return &manualOrder
 }
 
-// TODO: implement this when there is admin panel
 func Publish(order *ManualOrder) error {
 	// RabbitMQ connection URL
 	ch := GetChannel()

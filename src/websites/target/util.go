@@ -18,8 +18,8 @@ func PanicIfVpnNotEnabled() {
 	var country struct {
 		Country string `json:"country_code2"`
 	}
-	json.Unmarshal(body, &country)
-	if country.Country == "MD" {
+	err = json.Unmarshal(body, &country)
+	if err != nil || country.Country == "MD" {
 		panic("VPN not enabled!")
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func UpdateLastNamesRoutine(wg *sync.WaitGroup, lastNamesUrl string) {
+func UpdateLastNames(wg *sync.WaitGroup, lastNamesUrl string) {
 	log.Info("Updating last names if needed")
 	if dao.Dao.IsTableEmpty(&dto.LastName{}) {
 		log.Info("Last names table empty, updating")
