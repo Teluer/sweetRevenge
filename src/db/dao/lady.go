@@ -17,7 +17,6 @@ func (d *GormDao) SaveNewLadies(ladies []dto.Lady) {
 
 	phones := d.SelectPhones()
 	var newLadies []dto.Lady
-	var outdatedLadies []dto.Lady
 
 NEW_LOOP:
 	for _, lady := range ladies {
@@ -29,25 +28,12 @@ NEW_LOOP:
 		newLadies = append(newLadies, lady)
 	}
 
-OUTDATED_LOOP:
-	for _, phone := range phones {
-		for _, lady := range ladies {
-			if phone == lady.Phone {
-				continue OUTDATED_LOOP
-			}
-		}
-		outdatedLadies = append(outdatedLadies, dto.Lady{Phone: phone})
-	}
-
 	if len(newLadies) > 0 {
 		log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
 		d.Insert(&newLadies)
 	} else {
 		log.Info("No new ladies found")
 	}
-
-	//log.Info(fmt.Sprintf("Deleting %d ladies", len(outdatedLadies)))
-	//Delete(&outdatedLadies)
 }
 
 func (d *GormDao) SelectPhones() []string {

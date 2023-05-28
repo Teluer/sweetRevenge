@@ -27,8 +27,8 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (la
 	var urls []string
 	tor := web.OpenAnonymousSession(socksProxy)
 	for _, ladyCategory := range ladiesUrls {
+		log.Info("Fetching lady list from " + ladyCategory)
 		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
-			log.Info("Fetching lady list from " + currentUrl)
 			page := tor.GetUrl(currentUrl)
 			ladyUrls, hasNextPage := parseLadiesList(page)
 			if len(ladyUrls) > 0 {
