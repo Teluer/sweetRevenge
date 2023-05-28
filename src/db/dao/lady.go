@@ -39,8 +39,13 @@ OUTDATED_LOOP:
 		outdatedLadies = append(outdatedLadies, dto.Lady{Phone: phone})
 	}
 
-	log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
-	d.Insert(&newLadies)
+	if len(newLadies) > 0 {
+		log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
+		d.Insert(&newLadies)
+	} else {
+		log.Info("No new ladies found")
+	}
+
 	//log.Info(fmt.Sprintf("Deleting %d ladies", len(outdatedLadies)))
 	//Delete(&outdatedLadies)
 }

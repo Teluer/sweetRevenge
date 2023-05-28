@@ -5,6 +5,8 @@ import (
 )
 
 type Config struct {
+	TimeZone string `properties:"timezone"`
+
 	OrdersRoutineCfg OrdersRoutineConfig `properties:"ordersroutine"`
 	Rabbit           RabbitConfig        `properties:"rabbit"`
 
@@ -20,7 +22,6 @@ type OrdersRoutineConfig struct {
 	SendOrdersMaxInterval time.Duration `properties:"send.interval.max"`
 	DayStart              time.Duration `properties:"day.start"`
 	DayEnd                time.Duration `properties:"day.end"`
-	TimeZone              string        `properties:"timezone"`
 	SendOrdersEnabled     bool          `properties:"orders.enabled""`
 	OrdersCfg             OrdersConfig  `properties:"orders"`
 }

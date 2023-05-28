@@ -20,32 +20,31 @@ var templ = `<!DOCTYPE html>
     <body>
         <h1>Update Configs</h1>
         <form method="POST" id="ConfForm" action="/conf">
-            <label class="response-label" style="color:red;"></label>
-            <br>
             <label for="name">Order Max interval in munites:</label>
             <br>
             <input type="text" id="frequency" name="frequency" value={{.OrdersInterval}}  required>
             <br>
-            <label for="email">Enable sending orders:</label>
-            <br>
+            <label for="email">Enable sending orders: </label>
             <input type="checkbox" id="shouldSend" name="shouldSend" {{if .OrdersEnabled}} checked {{end}}>
             <br>
             <input type="submit" value="Submit">
+            <br>
+            <label class="response-label" style="color:red;"></label>
         </form>
 
         <h1>Send Manual Order</h1>
         <form method="POST" id="OrderForm" action="/order">
-            <label class="response-label" style="color:red;"></label>
-            <br>
             <label for="name">Name:</label>
             <br>
-            <input type="text" id="name" name="name" value="" required>
+            <input type="text" id="name" name="name" value="">
             <br>
             <label for="phone">Phone:</label>
             <br>
-            <input type="text" id="phone" name="phone" value="" required>
+            <input type="text" id="phone" name="phone" value="">
             <br>
             <input type="submit" value="Submit">
+            <br>
+            <label class="response-label" style="color:red;"></label>
         </form>
         <script>
           listener = function(event) {
@@ -54,16 +53,14 @@ var templ = `<!DOCTYPE html>
 			var form = event.target;
 			var formData = new FormData(form);
 		
-			// Send a POST request to the server
 			fetch(form.action, {
 			  method: form.method,
 			  body: formData
 			})
 			.then(function(response) {
-			  return response.text(); // Extract the response text
+			  return response.text();
 			})
 			.then(function(responseText) {
-			  // Update the label with the response message
               document.querySelector('#' + form.id + ' .response-label').textContent = responseText;
 			})
 			.catch(function(error) {
@@ -134,6 +131,11 @@ func configHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWriter, *h
 func orderHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	phone := r.FormValue("phone")
+
+	if name == "" && phone == "" {
+		w.Write([]byte("Both fields cannot be blank!"))
+		return
+	}
 
 	order := rabbitmq.ManualOrder{
 		Name:  name,

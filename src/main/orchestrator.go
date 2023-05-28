@@ -1,22 +1,23 @@
 package main
 
 import (
+	"github.com/go-co-op/gocron"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"sweetRevenge/src/admin"
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
-	dto2 "sweetRevenge/src/db/dto"
 	"sweetRevenge/src/rabbitmq"
 	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites"
-	"sweetRevenge/src/websites/target/legacy"
+	"sweetRevenge/src/websites/target"
 	"sync"
 	"time"
 )
 
 func programLogic(cfg *config.Config) {
-	rand.Seed(time.Now().UnixMilli())
+	loc, _ := time.LoadLocation(cfg.TimeZone)
+
 	//wait for the updates to complete, then proceed with orders.
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
 	var wg sync.WaitGroup
@@ -25,10 +26,12 @@ func programLogic(cfg *config.Config) {
 	go websites.UpdateFirstNames(&wg, cfg.FirstNamesUrl)
 	wg.Wait()
 
+	//using scheduler
+	scheduleUpdateLadiesJob(cfg.LadiesCfg, loc, cfg.SocksProxyAddress)
+
 	go manualOrdersJob()
-	go updateLadiesJob(cfg.LadiesCfg, cfg.SocksProxyAddress)
 	//everything ready, start sending orders
-	go sendOrdersJob(&cfg.OrdersRoutineCfg, cfg.SocksProxyAddress)
+	go sendOrdersJob(&cfg.OrdersRoutineCfg, loc, cfg.SocksProxyAddress)
 
 	go admin.StartControlPanelServer(&cfg.OrdersRoutineCfg)
 }
@@ -39,41 +42,44 @@ func manualOrdersJob() {
 		func() {
 			defer util.RecoverAndLogError("RabbitMq")
 			order := rabbitmq.ConsumeManualOrder()
-			legacy.QueueManualOrder(order)
+			target.QueueManualOrder(order)
 			log.Info("Manual order is queued and will be executed by Orders routine")
 		}()
 	}
 }
 
-func updateLadiesJob(cfg config.LadiesConfig, socksProxy string) {
-	log.Info("Starting update ladies routine")
-	for {
+func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksProxy string) {
+	s := gocron.NewScheduler(loc)
+	_, err := s.Every(cfg.UpdateLadiesInterval).Do(func() {
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
-		log.Info("updateLadiesJob: sleeping for ", int(cfg.UpdateLadiesInterval/time.Minute), " minutes")
-		time.Sleep(cfg.UpdateLadiesInterval)
+	})
+
+	if err != nil {
+		log.WithError(err).Error("Failed to start UpdateLadies job")
+	} else {
+		log.Info("Starting update ladies routine")
+		s.StartAsync()
 	}
 }
 
-func sendOrdersJob(cfg *config.OrdersRoutineConfig, socksProxy string) {
+func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksProxy string) {
 	log.Info("Starting send orders routine")
-
-	//sleeping at first to avoid order spamming due to multiple restarts
-	sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-	log.Infof("sendOrdersJob: sending order in %.2f minutes", float64(sleepDuration/time.Minute))
-	time.Sleep(sleepDuration)
 
 	for {
 		log.Info("sendOrdersJob: Order flow triggered")
-		sleepAtNight(cfg)
+		sleepAtNight(cfg, loc)
+
+		//sleeping at first to avoid order spamming due to multiple restarts
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
+		time.Sleep(sleepDuration)
 
 		//is everything in place to make orders
-		readyToGo := !(dao.Dao.IsTableEmpty(&dto2.FirstName{}) ||
-			dao.Dao.IsTableEmpty(&dto2.LastName{}) ||
-			dao.Dao.IsTableEmpty(&dto2.Lady{}))
+		readyToGo := dao.Dao.ValidateDataIntegrity()
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			go legacy.OrderItem(cfg.OrdersCfg, socksProxy)
+			go target.OrderItem(cfg.OrdersCfg, socksProxy)
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")
@@ -82,19 +88,14 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, socksProxy string) {
 				log.Info("SendOrdersEnabled = false, not sending anything")
 			}
 		}
-
-		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
-		time.Sleep(sleepDuration)
 	}
 }
 
-func sleepAtNight(cfg *config.OrdersRoutineConfig) {
-	loc, _ := time.LoadLocation(cfg.TimeZone)
+func sleepAtNight(cfg *config.OrdersRoutineConfig, loc *time.Location) {
 	year, month, day := time.Now().In(loc).Date()
 	midnight := time.Date(year, month, day, 0, 0, 0, 0, loc)
 
-	currentTime := time.Now()
+	currentTime := time.Now().In(loc)
 	startTime := midnight.Add(cfg.DayStart)
 	endTime := midnight.Add(cfg.DayEnd)
 

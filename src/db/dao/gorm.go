@@ -13,6 +13,7 @@ type Database interface {
 	Insert(obj any)
 	Delete(obj any)
 	IsTableEmpty(obj any) bool
+	ValidateDataIntegrity() bool
 
 	SelectPhones() []string
 	GetLeastUsedPhone() string
@@ -57,4 +58,10 @@ func (d *GormDao) Delete(obj any) {
 
 func (d *GormDao) IsTableEmpty(obj any) bool {
 	return d.db.Limit(1).Find(obj).RowsAffected == 0
+}
+
+func (d *GormDao) ValidateDataIntegrity() bool {
+	return !(Dao.IsTableEmpty(&dto.FirstName{}) ||
+		Dao.IsTableEmpty(&dto.LastName{}) ||
+		Dao.IsTableEmpty(&dto.Lady{}))
 }
