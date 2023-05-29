@@ -29,7 +29,7 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (la
 	for _, ladyCategory := range ladiesUrls {
 		log.Info("Fetching lady list from " + ladyCategory)
 		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
-			page := tor.GetUrl(currentUrl)
+			_, page := tor.GetUrl(currentUrl)
 			ladyUrls, hasNextPage := parseLadiesList(page)
 			if len(ladyUrls) > 0 {
 				urls = append(urls, ladyUrls...)
@@ -50,7 +50,7 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (la
 		if request == nil {
 			continue
 		}
-		ad := tor.GetRequest(request)
+		_, ad := tor.GetRequest(request)
 		lady := getLady(ad)
 		if lady.Phone != "" {
 			ladies = append(ladies, lady)

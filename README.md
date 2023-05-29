@@ -25,10 +25,11 @@
 - Keep logs
 
 ## Used technologies ##
-- Golang (with gorm, logrus, testify etc)
+- Golang (with gorm, gocron, goquery, logrus, testify etc)
 - MySql database
 - RabbitMq (with connection pooling)
 - TOR
+- Selenium
 - Docker
 
 ## Order Concealing ##

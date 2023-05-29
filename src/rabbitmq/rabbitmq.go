@@ -20,31 +20,14 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 	//wait for rabbitmq to initialize
 	TestConnection(cfg.Host)
 
-	poolConfig := &pool.Config{
-		InitialCap: 1,
-		MaxCap:     10,
-		MaxIdle:    5,
-		Factory: func() (interface{}, error) {
-			return amqp.Dial(cfg.Host)
-		},
-		Close: func(v interface{}) error {
-			conn := v.(amqp.Connection)
-			return conn.Close()
-		},
-	}
-	connPool, err := pool.NewChannelPool(poolConfig)
-	if err != nil {
-		log.Error("Failed to create RabbitMQ connection pool: %v", err)
-	}
-
-	rabbit.rabbitPool = &connPool
+	rabbit.rabbitPool = openConnectionPool(cfg)
 	rabbit.queue = cfg.QueueName
 
 	// Declare queue
 	ch := GetChannel()
 	defer ch.Close()
 
-	_, err = ch.QueueDeclare(
+	_, err := ch.QueueDeclare(
 		cfg.QueueName, // name
 		true,          // durable
 		false,         // delete when unused
@@ -91,7 +74,6 @@ func GetChannel() *amqp.Channel {
 		log.Panic("Failed to open a channel:", err)
 		panic(err)
 	}
-
 	return ch
 }
 
@@ -155,4 +137,24 @@ func Publish(order *ManualOrder) error {
 		log.Infof("Message sent: %s", message)
 	}
 	return nil
+}
+
+func openConnectionPool(cfg config.RabbitConfig) *pool.Pool {
+	poolConfig := &pool.Config{
+		InitialCap: 1,
+		MaxCap:     10,
+		MaxIdle:    5,
+		Factory: func() (interface{}, error) {
+			return amqp.Dial(cfg.Host)
+		},
+		Close: func(v interface{}) error {
+			conn := v.(amqp.Connection)
+			return conn.Close()
+		},
+	}
+	connPool, err := pool.NewChannelPool(poolConfig)
+	if err != nil {
+		log.Fatalf("Failed to create RabbitMQ connection pool: %v", err)
+	}
+	return &connPool
 }

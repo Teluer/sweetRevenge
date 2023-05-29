@@ -65,16 +65,19 @@ func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksP
 func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksProxy string) {
 	log.Info("Starting send orders routine")
 
+	if cfg.StartDelay {
+		log.Info("Configured to delay the first order")
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
+		time.Sleep(sleepDuration)
+	} else {
+		log.Warn("Sending initial order without delay!")
+	}
+
 	for {
 		log.Info("sendOrdersJob: Order flow triggered")
 		sleepAtNight(cfg, loc)
 
-		//sleeping at first to avoid order spamming due to multiple restarts
-		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
-		time.Sleep(sleepDuration)
-
-		//is everything in place to make orders
 		readyToGo := dao.Dao.ValidateDataIntegrity()
 		ordersEnabled := cfg.SendOrdersEnabled
 
@@ -88,6 +91,10 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 				log.Info("SendOrdersEnabled = false, not sending anything")
 			}
 		}
+		//sleeping at first to avoid order spamming due to multiple restarts
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
+		time.Sleep(sleepDuration)
 	}
 }
 

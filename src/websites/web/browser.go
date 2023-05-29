@@ -39,17 +39,6 @@ func GetRequestUnsafe(req *http.Request) *goquery.Document {
 	return extractDocumentFromResponseBody(body)
 }
 
-func extractDocumentFromResponseBody(body []byte) *goquery.Document {
-	reader := bytes.NewReader(body)
-	doc, err := goquery.NewDocumentFromReader(reader)
-	if err != nil {
-		log.WithError(err).Error("Failed to parse response body")
-		panic(fmt.Sprintf("while parsing response body: %v", err))
-	}
-
-	return doc
-}
-
 func OpenAnonymousSession(proxy string) *AnonymousSession {
 	return &AnonymousSession{
 		session: openNewSession(proxy),
@@ -60,18 +49,29 @@ func (as *AnonymousSession) SendRequest(req *http.Request) (response *http.Respo
 	return as.session.anonymousRequest(req)
 }
 
-func (as *AnonymousSession) GetUrl(url string) *goquery.Document {
-	_, responseBody := as.session.getAnonymously(url)
-	return extractDocumentFromResponseBody(responseBody)
+func (as *AnonymousSession) GetUrl(url string) (*http.Response, *goquery.Document) {
+	resp, responseBody := as.session.getAnonymously(url)
+	return resp, extractDocumentFromResponseBody(responseBody)
 }
 
-func (as *AnonymousSession) GetRequest(req *http.Request) *goquery.Document {
-	_, body := as.SendRequest(req)
-	return extractDocumentFromResponseBody(body)
+func (as *AnonymousSession) GetRequest(req *http.Request) (*http.Response, *goquery.Document) {
+	resp, body := as.SendRequest(req)
+	return resp, extractDocumentFromResponseBody(body)
 }
 
 func (as *AnonymousSession) FetchCookies(url string) []*http.Cookie {
 	var resp *http.Response
 	resp, _ = as.session.getAnonymously(url)
 	return resp.Cookies()
+}
+
+func extractDocumentFromResponseBody(body []byte) *goquery.Document {
+	reader := bytes.NewReader(body)
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		log.WithError(err).Error("Failed to parse response body")
+		panic(fmt.Sprintf("while parsing response body: %v", err))
+	}
+
+	return doc
 }
