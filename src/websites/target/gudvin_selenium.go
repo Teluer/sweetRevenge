@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// TODO: call this if captcha is enabled and regular order fails.
 func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string) {
 	//simpler to do with just tor
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) via Selenium",
@@ -39,6 +38,5 @@ func solveYandexCaptcha(selenium *util.Selenium) {
 	answer := util.SolveExpression(captcha)
 	log.Info("Captcha solution: ", answer)
 
-	selenium.Click("input.form__input_captcha")
-	selenium.Input("input.form__input_captcha", answer)
+	selenium.EnterCaptcha(answer)
 }

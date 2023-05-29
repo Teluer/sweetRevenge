@@ -19,6 +19,18 @@ RUN go build -o sweetRevenge ./src/main
 # Start a new stage
 FROM rabbitmq:3.9
 
+# Install necessary dependencies for Chrome
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    wget \
+    gnupg
+
+# Download and install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable
+
 # Copy the built Go application from the previous stage
 COPY --from=builder /app/sweetRevenge /usr/local/bin/sweetRevenge
 

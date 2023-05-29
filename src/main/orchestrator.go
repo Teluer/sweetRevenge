@@ -50,7 +50,7 @@ func manualOrdersJob() {
 
 func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksProxy string) {
 	s := gocron.NewScheduler(loc)
-	_, err := s.Every(cfg.UpdateLadiesInterval).Do(func() {
+	_, err := s.Every(cfg.UpdateLadiesInterval).StartAt(time.Now().Add(time.Hour)).Do(func() {
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
 	})
 

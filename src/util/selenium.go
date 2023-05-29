@@ -5,7 +5,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
 	"github.com/tebeka/selenium"
-	"github.com/tebeka/selenium/firefox"
+	"github.com/tebeka/selenium/chrome"
 	"strings"
 	"time"
 )
@@ -18,31 +18,35 @@ type Selenium struct {
 func Connect(url, socksProxy string) *Selenium {
 	const port = 4444
 
-	service, err := selenium.NewGeckoDriverService("files/geckodriver.exe", port)
+	service, err := selenium.NewChromeDriverService("files/chromedriver.exe", port)
 	if err != nil {
 		log.Errorf("Failed to start the WebDriver service: %v", err)
 		panic(err)
 	}
 
 	caps := selenium.Capabilities{
-		"browserName": "firefox",
+		"browserName": "chrome",
 	}
 	caps.AddProxy(selenium.Proxy{
 		Type:         selenium.Manual,
 		SOCKS:        socksProxy,
 		SOCKSVersion: 5,
 	})
-	ffCaps := firefox.Capabilities{}
-	err = ffCaps.SetProfile("files/a4r2akqa.SeleniumFF")
-	caps.AddFirefox(ffCaps)
+	cc := chrome.Capabilities{
+		W3C: false,
+		Args: []string{
+			"--headless", // Run Chrome in headless mode (without UI)
+		},
+	}
+	caps.AddChrome(cc)
 
 	// Start a Tor browser session
-	webDriver, err := selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d", port))
+	webDriver, err := selenium.NewRemote(caps, fmt.Sprintf("http://localhost:%d/wd/hub", port))
 	if err != nil {
-		log.Errorf("Failed to start the Tor browser session: %v", err)
+		log.Errorf("Failed to start browser session: %v", err)
 		panic(err)
 	}
-	webDriver.SetPageLoadTimeout(time.Second * 60)
+	webDriver.SetPageLoadTimeout(time.Second * 120)
 
 	err = webDriver.Get(url)
 	if err != nil {
@@ -91,6 +95,22 @@ func (s *Selenium) Input(selector, value string) {
 	err = element.SendKeys(value)
 	if err != nil {
 		log.Errorf("Failed to input: %v", err)
+		panic(err)
+	}
+}
+
+func (s *Selenium) EnterCaptcha(value string) {
+	webDriver := *s.driver
+	element, _ := webDriver.FindElement(selenium.ByCSSSelector, "#fn_fast_order")
+	element, err := element.FindElement(selenium.ByCSSSelector, "input.form__input_captcha")
+	if err != nil {
+		log.Errorf("Failed to find captcha field: %v", err)
+		panic(err)
+	}
+
+	err = element.SendKeys(value)
+	if err != nil {
+		log.Errorf("Failed to enter captcha: %v", err)
 		panic(err)
 	}
 }

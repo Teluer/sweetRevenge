@@ -21,6 +21,7 @@ var orders struct {
 
 func OrderItem(cfg config.OrdersConfig, socksProxy string) {
 	defer util.RecoverAndLogError("Orders")
+
 	orders.orderCfg = cfg
 	//check manually prepared orders, if there are no manual orders then make random order
 	if !executeManualOrder(socksProxy) {
