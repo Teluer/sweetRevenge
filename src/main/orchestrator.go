@@ -49,8 +49,9 @@ func manualOrdersJob() {
 }
 
 func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksProxy string) {
+	startTime := time.Now().Add(cfg.UpdateLadiesStartDelay)
 	s := gocron.NewScheduler(loc)
-	_, err := s.Every(cfg.UpdateLadiesInterval).StartAt(time.Now().Add(time.Hour)).Do(func() {
+	_, err := s.Every(cfg.UpdateLadiesInterval).StartAt(startTime).Do(func() {
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
 	})
 
@@ -68,7 +69,7 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 	if cfg.StartDelay {
 		log.Info("Configured to delay the first order")
 		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
-		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
+		log.Infof("sendOrdersJob: scheduling order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)
 	} else {
 		log.Warn("Sending initial order without delay!")
@@ -91,7 +92,6 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 				log.Info("SendOrdersEnabled = false, not sending anything")
 			}
 		}
-		//sleeping at first to avoid order spamming due to multiple restarts
 		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
 		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)

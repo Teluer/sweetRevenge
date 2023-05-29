@@ -18,7 +18,7 @@ type Selenium struct {
 func Connect(url, socksProxy string) *Selenium {
 	const port = 4444
 
-	service, err := selenium.NewChromeDriverService("files/chromedriver.exe", port)
+	service, err := selenium.NewChromeDriverService("chromedriver", port)
 	if err != nil {
 		log.Errorf("Failed to start the WebDriver service: %v", err)
 		panic(err)
@@ -35,6 +35,7 @@ func Connect(url, socksProxy string) *Selenium {
 	cc := chrome.Capabilities{
 		W3C: false,
 		Args: []string{
+			"--no-sandbox",
 			"--headless", // Run Chrome in headless mode (without UI)
 		},
 	}
@@ -46,7 +47,8 @@ func Connect(url, socksProxy string) *Selenium {
 		log.Errorf("Failed to start browser session: %v", err)
 		panic(err)
 	}
-	webDriver.SetPageLoadTimeout(time.Second * 120)
+	webDriver.SetPageLoadTimeout(time.Minute * 3)
+	webDriver.SetImplicitWaitTimeout(time.Minute * 3)
 
 	err = webDriver.Get(url)
 	if err != nil {
@@ -84,6 +86,24 @@ func (s *Selenium) Click(selector string) {
 	}
 }
 
+func (s *Selenium) WaitForRedirect(url string) {
+	webDriver := *s.driver
+
+	condition := func(wd selenium.WebDriver) (bool, error) {
+		currentUrl, err := wd.CurrentURL()
+		if err != nil {
+			return false, err
+		}
+		return strings.Contains(currentUrl, url), nil
+	}
+
+	err := webDriver.Wait(condition)
+	if err != nil {
+		log.Errorf("Wait for redirect failed: %v", err)
+		panic(err)
+	}
+}
+
 func (s *Selenium) Input(selector, value string) {
 	webDriver := *s.driver
 	element, err := webDriver.FindElement(selenium.ByCSSSelector, selector)
@@ -101,8 +121,7 @@ func (s *Selenium) Input(selector, value string) {
 
 func (s *Selenium) EnterCaptcha(value string) {
 	webDriver := *s.driver
-	element, _ := webDriver.FindElement(selenium.ByCSSSelector, "#fn_fast_order")
-	element, err := element.FindElement(selenium.ByCSSSelector, "input.form__input_captcha")
+	element, err := webDriver.FindElement(selenium.ByCSSSelector, "#fn_fast_order input.form__input_captcha")
 	if err != nil {
 		log.Errorf("Failed to find captcha field: %v", err)
 		panic(err)

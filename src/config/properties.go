@@ -42,7 +42,8 @@ type RabbitConfig struct {
 }
 
 type LadiesConfig struct {
-	UpdateLadiesInterval time.Duration `properties:"update.interval"`
-	LadiesBaseUrl        string        `properties:"base"`
-	LadiesUrls           []string      `properties:"categories"`
+	UpdateLadiesInterval   time.Duration `properties:"update.interval"`
+	UpdateLadiesStartDelay time.Duration `properties:"start.delay"`
+	LadiesBaseUrl          string        `properties:"base"`
+	LadiesUrls             []string      `properties:"categories"`
 }

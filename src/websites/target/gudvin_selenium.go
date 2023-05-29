@@ -17,12 +17,12 @@ func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string)
 
 	selenium.Click("a.fn_fast_order_button")
 	time.Sleep(time.Second * 3)
-	selenium.Input("input.fn_validate_fast_name", name)
-	selenium.Input("input.fn_validate_fast_phone", phone)
+	selenium.Input("#fn_fast_order input.fn_validate_fast_name", name)
+	selenium.Input("#fn_fast_order input.fn_validate_fast_phone", phone)
 	solveYandexCaptcha(selenium)
-	selenium.Click("input.fn_fast_order_submit")
+	selenium.Click("#fn_fast_order input.fn_fast_order_submit")
+	selenium.WaitForRedirect("/order/")
 
-	//todo: check if order success page was opened, then save new order
 	log.Info("Sent order successfully")
 }
 

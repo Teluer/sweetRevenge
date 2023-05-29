@@ -35,6 +35,7 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 COPY --from=builder /app/sweetRevenge /usr/local/bin/sweetRevenge
 
 COPY config.properties .
+COPY files/chromedriver /usr/local/bin/chromedriver
 COPY rabbitmq.conf /etc/rabbitmq/
 
 # Copy Tor and libraries
