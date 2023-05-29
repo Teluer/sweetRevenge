@@ -1,22 +1,9 @@
-package target
+package util
 
 import (
-	"github.com/PuerkitoBio/goquery"
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 )
-
-func SolveArythmeticCaptcha(doc *goquery.Document) (answer string) {
-	captcha := doc.Find("#fn_fast_order").Find("div.secret_number").Text()
-	if captcha == "" {
-		log.Info("No arithmetic captcha found, skipping captcha answer")
-		return ""
-	}
-
-	log.Info("Arithmetic captcha found, solving: " + captcha)
-	return SolveExpression(captcha)
-}
 
 func SolveExpression(captcha string) (answer string) {
 	//assuming captcha consists of numbers, +, -, =, and ? on either side of the expression
@@ -28,8 +15,6 @@ func SolveExpression(captcha string) (answer string) {
 	leftSide, rightSide := strings.FieldsFunc(sides[0], splitFn), strings.FieldsFunc(sides[1], splitFn)
 	diff := solveExpression(rightSide) - solveExpression(leftSide)
 	diff *= getDiffSign(leftSide, rightSide)
-
-	log.Info("Captcha solution: ", diff)
 	return strconv.Itoa(diff)
 }
 

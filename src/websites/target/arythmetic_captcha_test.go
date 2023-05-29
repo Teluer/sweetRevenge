@@ -2,6 +2,7 @@ package target
 
 import (
 	"github.com/stretchr/testify/assert"
+	"sweetRevenge/src/util"
 	"testing"
 )
 
@@ -22,7 +23,7 @@ func TestSolveArythmeticCaptcha(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.wantAnswer, SolveExpression(tt.args.captcha), "SolveArythmeticCaptcha(%v)", tt.args.captcha)
+			assert.Equalf(t, tt.wantAnswer, util.SolveExpression(tt.args.captcha), "SolveArythmeticCaptcha(%v)", tt.args.captcha)
 		})
 	}
 }

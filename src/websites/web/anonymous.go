@@ -25,9 +25,6 @@ func openNewSession(proxyUrl string) *TorSession {
 		Transport: &http.Transport{
 			Dial: dialer.Dial,
 		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return nil
-		},
 	}
 	log.Debug("Established TOR session successfully")
 	return &ts

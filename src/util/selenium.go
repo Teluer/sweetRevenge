@@ -2,9 +2,11 @@ package util
 
 import (
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/firefox"
+	"strings"
 	"time"
 )
 
@@ -13,7 +15,7 @@ type Selenium struct {
 	driver  *selenium.WebDriver
 }
 
-func Connect(url string) Selenium {
+func Connect(url, socksProxy string) *Selenium {
 	const port = 4444
 
 	service, err := selenium.NewGeckoDriverService("files/geckodriver.exe", port)
@@ -25,6 +27,11 @@ func Connect(url string) Selenium {
 	caps := selenium.Capabilities{
 		"browserName": "firefox",
 	}
+	caps.AddProxy(selenium.Proxy{
+		Type:         selenium.Manual,
+		SOCKS:        socksProxy,
+		SOCKSVersion: 5,
+	})
 	ffCaps := firefox.Capabilities{}
 	err = ffCaps.SetProfile("files/a4r2akqa.SeleniumFF")
 	caps.AddFirefox(ffCaps)
@@ -43,12 +50,19 @@ func Connect(url string) Selenium {
 		panic(err)
 	}
 
-	return Selenium{service: service, driver: &webDriver}
+	return &Selenium{service: service, driver: &webDriver}
 }
 
 func (s *Selenium) Close() {
 	s.service.Stop()
 	(*s.driver).Quit()
+}
+
+func (s *Selenium) GetDocument() *goquery.Document {
+	webDriver := *s.driver
+	html, _ := webDriver.PageSource()
+	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(html))
+	return doc
 }
 
 func (s *Selenium) Click(selector string) {
@@ -81,8 +95,7 @@ func (s *Selenium) Input(selector, value string) {
 	}
 }
 
-// TODO: solve captcha only if present
-func (s *Selenium) SolveCaptcha() {
+func (s *Selenium) SolveReCaptcha() {
 	webDriver := *s.driver
 
 	captcha, err := webDriver.FindElement(selenium.ByCSSSelector, "iframe[title='reCAPTCHA']")

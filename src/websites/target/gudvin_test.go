@@ -39,11 +39,11 @@ func Test_createRandomCustomer(t *testing.T) {
 				tt.lastName + " " + tt.firstName, strings.ToLower(tt.lastName + " " + tt.firstName),
 			}
 
-			gotName, gotPhone := createRandomCustomer()
+			gotName, gotPhone := CreateRandomCustomer()
 			mockDb.AssertNumberOfCalls(t, "GetLeastUsedPhone", 1)
 			mockDb.AssertNumberOfCalls(t, "GetLeastUsedFirstName", 1)
-			assert.Contains(t, possibleNames, gotName, "createRandomCustomer() gotName = %v, not in %v", gotName, possibleNames)
-			assert.Contains(t, possiblePhones, gotPhone, "createRandomCustomer() gotPhone = %v, want %v", gotPhone, possiblePhones)
+			assert.Contains(t, possibleNames, gotName, "CreateRandomCustomer() gotName = %v, not in %v", gotName, possibleNames)
+			assert.Contains(t, possiblePhones, gotPhone, "CreateRandomCustomer() gotPhone = %v, want %v", gotPhone, possiblePhones)
 		})
 	}
 }
