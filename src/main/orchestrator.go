@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-func programLogic(cfg *config.Config) {
-	loc, _ := time.LoadLocation(cfg.TimeZone)
+func programLogic(cfg *config.Config, loc *time.Location) {
+	log.Info("Program startup")
 
 	//wait for the updates to complete, then proceed with orders.
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
@@ -50,8 +50,9 @@ func manualOrdersJob() {
 
 func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksProxy string) {
 	startTime := time.Now().Add(cfg.UpdateLadiesStartDelay)
-	s := gocron.NewScheduler(loc)
-	_, err := s.Every(cfg.UpdateLadiesInterval).StartAt(startTime).Do(func() {
+
+	s := gocron.NewScheduler(loc).Every(cfg.UpdateLadiesInterval).StartAt(startTime)
+	_, err := s.Do(func() {
 		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
 	})
 
@@ -79,7 +80,7 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		log.Info("sendOrdersJob: Order flow triggered")
 		sleepAtNight(cfg, loc)
 
-		jobStart := time.Now().In(loc)
+		jobStart := time.Now()
 
 		readyToGo := dao.Dao.ValidateDataIntegrity()
 		ordersEnabled := cfg.SendOrdersEnabled
@@ -95,7 +96,7 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 				log.Info("SendOrdersEnabled = false, not sending anything")
 			}
 		}
-		jobDuration := time.Now().In(loc).Sub(jobStart)
+		jobDuration := time.Now().Sub(jobStart)
 		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
 		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)
