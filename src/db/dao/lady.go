@@ -6,14 +6,14 @@ import (
 	"sweetRevenge/src/db/dto"
 )
 
-func (d *GormDao) SaveNewLadies(ladies []dto.Lady) {
+func (d *GormDao) SaveNewLadies(ladies []dto.Lady) int {
 	log.Info("Saving new ladies")
 	if d.IsTableEmpty(&dto.Lady{}) {
-		log.Info("Ladies table is empty, populating")
+		log.Debug("Ladies table is empty, populating")
 		d.Insert(&ladies)
-		return
+		return len(ladies)
 	}
-	log.Info("Ladies table has values, adding new")
+	log.Debug("Ladies table has values, adding new")
 
 	phones := d.SelectPhones()
 	var newLadies []dto.Lady
@@ -29,11 +29,12 @@ NEW_LOOP:
 	}
 
 	if len(newLadies) > 0 {
-		log.Info(fmt.Sprintf("Inserting %d ladies", len(newLadies)))
+		log.Info(fmt.Sprintf("Inserting %d new ladies", len(newLadies)))
 		d.Insert(&newLadies)
 	} else {
 		log.Info("No new ladies found")
 	}
+	return len(newLadies)
 }
 
 func (d *GormDao) SelectPhones() []string {

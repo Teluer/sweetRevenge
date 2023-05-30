@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// TODO: add proper documentation for some stuff
 func main() {
 	log.Info("Program Startup")
 

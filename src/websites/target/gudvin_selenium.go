@@ -35,7 +35,7 @@ func solveYandexCaptcha(selenium *util.Selenium) {
 	}
 
 	log.Info("Arithmetic captcha found, solving: " + captcha)
-	answer := util.SolveExpression(captcha)
+	answer := util.SolveArithmeticCaptcha(captcha)
 	log.Info("Captcha solution: ", answer)
 
 	selenium.EnterCaptcha(answer)

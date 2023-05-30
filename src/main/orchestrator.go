@@ -40,7 +40,7 @@ func manualOrdersJob() {
 	log.Info("Starting manual orders RabbitMq listener")
 	for {
 		func() {
-			defer util.RecoverAndLogError("RabbitMq")
+			defer util.RecoverAndLog("RabbitMq")
 			order := rabbitmq.ConsumeManualOrder()
 			target.QueueManualOrder(order)
 			log.Info("Manual order is queued and will be executed by Orders routine")

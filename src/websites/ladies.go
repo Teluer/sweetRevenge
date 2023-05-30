@@ -15,38 +15,37 @@ import (
 )
 
 func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) {
-	defer util.RecoverAndLogError("LadiesUpdate")
+	defer util.RecoverAndLog("LadiesUpdate")
 
 	log.Info("Ladies update triggered")
-	ladies := getLadies(ladiesBaseUrl, ladiesUrls, socksProxy)
-	log.Info(fmt.Sprintf("Found %d ladies", len(ladies)))
-	dao.Dao.SaveNewLadies(ladies)
-}
-
-func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (ladies []dto.Lady) {
-	var urls []string
+	totalInserted := 0
 	tor := web.OpenAnonymousSession(socksProxy)
 	for _, ladyCategory := range ladiesUrls {
-		log.Info("Fetching lady list from " + ladyCategory)
-		for currentUrl, pageNumber := ladyCategory, 1; ; currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber) {
-			_, page := tor.GetUrl(currentUrl)
-			ladyUrls, hasNextPage := parseLadiesList(page)
-			if len(ladyUrls) > 0 {
-				urls = append(urls, ladyUrls...)
-			}
-			if !hasNextPage {
-				break
-			}
-			pageNumber++
-			currentUrl = ladyCategory + "?page=" + strconv.Itoa(pageNumber)
+		totalInserted += fetchLadies(ladiesBaseUrl, ladyCategory, tor)
+	}
+	log.Info(fmt.Sprintf("Found %d new ladies", totalInserted))
+}
+
+func fetchLadies(ladiesBaseUrl string, ladyCategory string, tor *web.AnonymousSession) (insertedCount int) {
+	var urls []string
+	log.Info("Fetching lady list from " + ladyCategory)
+
+	//the first time I actually needed a do/while loop in my life
+	for pageNumber, hasNext := 1, true; hasNext; pageNumber++ {
+		_, page := tor.GetUrl(ladyCategory + "?page=" + strconv.Itoa(pageNumber))
+		ladyUrls := parseLadiesList(page)
+		if len(ladyUrls) > 0 {
+			urls = append(urls, ladyUrls...)
 		}
+		hasNext = hasNextPage(page)
 	}
 
 	//send all requests consecutively to avoid getting blocked
-	log.Info("Fetching lady phones from all categories")
+	log.Info("Fetching lady phones from " + ladyCategory)
+	var ladies []dto.Lady
 	for _, url := range urls {
 		url = ladiesBaseUrl + url
-		request := getRequestWithPopupBypass(url)
+		request := prepareRequestWithPopupBypass(url)
 		if request == nil {
 			continue
 		}
@@ -56,32 +55,25 @@ func getLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) (la
 			ladies = append(ladies, lady)
 		}
 	}
-
-	//remove duplicated phones
-	var uniqueLadies []dto.Lady
-MAIN_LOOP:
-	for _, lady := range ladies {
-		for _, resultLady := range uniqueLadies {
-			if resultLady.Phone == lady.Phone {
-				continue MAIN_LOOP
-			}
-		}
-		uniqueLadies = append(uniqueLadies, lady)
-	}
-	return uniqueLadies
+	ladies = removeDuplicates(ladies)
+	return dao.Dao.SaveNewLadies(ladies)
 }
 
-func parseLadiesList(htmlPage *goquery.Document) (adLinks []string, hasNextPage bool) {
-	hasNextPage = htmlPage.Find("nav.paginator").Find(".current").Next().Length() > 0
-
+func parseLadiesList(htmlPage *goquery.Document) (adLinks []string) {
 	adLinks = htmlPage.Find("ul.ads-list-photo").First().Children().
-		Filter("li.ads-list-photo-item").Filter(":not(.is-adsense):not(.js-booster-inline)").
+		Filter("li.ads-list-photo-item").
+		Filter(":not(.is-adsense):not(.js-booster-inline)").
 		Find(".ads-list-photo-item-title").Children().
 		Map(func(i int, a *goquery.Selection) string {
 			href, _ := a.Attr("href")
 			return href
 		})
-	return adLinks, hasNextPage
+	return adLinks
+}
+
+func hasNextPage(htmlPage *goquery.Document) bool {
+	return htmlPage.Find("nav.paginator").
+		Find(".current").Next().Length() > 0
 }
 
 func getLady(htmlPage *goquery.Document) dto.Lady {
@@ -92,7 +84,7 @@ func getLady(htmlPage *goquery.Document) dto.Lady {
 	return dto.Lady{Phone: phone}
 }
 
-func getRequestWithPopupBypass(url string) *http.Request {
+func prepareRequestWithPopupBypass(url string) *http.Request {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.WithError(err).Error("Failed to create request to get lady!")
@@ -109,6 +101,18 @@ func getRequestWithPopupBypass(url string) *http.Request {
 		Value:   "False",
 		Expires: time.Now().Add(365 * 24 * time.Hour),
 	})
-
 	return request
+}
+
+func removeDuplicates(ladies []dto.Lady) (uniqueLadies []dto.Lady) {
+MAIN_LOOP:
+	for _, lady := range ladies {
+		for _, resultLady := range uniqueLadies {
+			if resultLady.Phone == lady.Phone {
+				continue MAIN_LOOP
+			}
+		}
+		uniqueLadies = append(uniqueLadies, lady)
+	}
+	return
 }

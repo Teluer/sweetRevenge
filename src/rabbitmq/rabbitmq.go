@@ -78,7 +78,7 @@ func GetChannel() *amqp.Channel {
 }
 
 func ConsumeManualOrder() *ManualOrder {
-	defer util.RecoverAndLogError("RabbitMq")
+	defer util.RecoverAndLog("RabbitMq")
 
 	ch := GetChannel()
 	defer ch.Close()

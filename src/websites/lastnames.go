@@ -20,9 +20,10 @@ func UpdateLastNames(wg *sync.WaitGroup, lastNamesUrl string) {
 }
 
 func fetchLastNames(lastNamesUrl string) (dtos []dto.LastName) {
-	lastNames := web.GetUrlUnsafe(lastNamesUrl).Find("ol.row").Find("a")
-	lastNames.Each(func(_ int, name *goquery.Selection) {
+	appendNames := func(_ int, name *goquery.Selection) {
 		dtos = append(dtos, dto.LastName{LastName: name.Text()})
-	})
+	}
+	web.GetUrlUnsafe(lastNamesUrl).Find("ol.row").Find("a").
+		Each(appendNames)
 	return dtos
 }

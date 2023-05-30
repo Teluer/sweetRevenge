@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func SolveExpression(captcha string) (answer string) {
+func SolveArithmeticCaptcha(captcha string) (answer string) {
 	//assuming captcha consists of numbers, +, -, =, and ? on either side of the expression
 	sides := strings.Split(captcha, "=")
 
