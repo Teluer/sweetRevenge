@@ -18,14 +18,14 @@ type OrderSuccess struct {
 	Redirect string `json:"redirect_location"`
 }
 
-func orderItemWithCustomerTor(name, phone, itemId, link string, tor *web.AnonymousSession) {
+func (ord *Order) orderItemWithCustomerTor(name, phone, itemId, link string, tor *web.AnonymousSession) {
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
-		name, phone, itemId, link, orders.orderCfg.TargetOrderLink))
+		name, phone, itemId, link, ord.OrderCfg.TargetOrderLink))
 
 	cookies := tor.FetchCookies(link)
 	log.Info("Got cookies: ", cookies)
 
-	req := prepareOrderRequest(orders.orderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
+	req := ord.prepareOrderRequest(ord.OrderCfg.TargetOrderLink, name, phone, itemId, link, cookies)
 	resp, body := tor.SendRequest(req)
 	log.Info(string(body))
 	cookies = append(cookies, resp.Cookies()...)
@@ -39,7 +39,7 @@ func orderItemWithCustomerTor(name, phone, itemId, link string, tor *web.Anonymo
 	}
 
 	log.Info("Visiting order page to reproduce user behaviour")
-	req = prepareOrderSuccessGetRequest(responseBody.Redirect, link, cookies)
+	req = ord.prepareOrderSuccessGetRequest(responseBody.Redirect, link, cookies)
 	resp, _ = tor.SendRequest(req)
 	cookies = append(cookies, resp.Cookies()...)
 
@@ -51,9 +51,9 @@ func orderItemWithCustomerTor(name, phone, itemId, link string, tor *web.Anonymo
 	log.Info("Sent order successfully")
 }
 
-func findRandomItem(tor *web.AnonymousSession) (id string, link string) {
-	caregoryIndex := rand.Intn(len(orders.orderCfg.TargetCategories))
-	randomCategory := orders.orderCfg.TargetCategories[caregoryIndex]
+func (ord *Order) findRandomItem(tor *web.AnonymousSession) (id string, link string) {
+	caregoryIndex := rand.Intn(len(ord.OrderCfg.TargetCategories))
+	randomCategory := ord.OrderCfg.TargetCategories[caregoryIndex]
 
 	log.Info("Fetching random item from category " + randomCategory)
 
@@ -70,12 +70,12 @@ func findRandomItem(tor *web.AnonymousSession) (id string, link string) {
 		return true
 	})
 
-	link = orders.orderCfg.TargetBaselink + link
+	link = ord.OrderCfg.TargetBaselink + link
 	log.Info("Will order the following item: " + id + " " + link)
 	return id, link
 }
 
-func prepareOrderRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
+func (ord *Order) prepareOrderRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
 	//create request body
 	formData := url.Values{}
 	formData.Set("variant_id", itemId)
@@ -119,7 +119,7 @@ func prepareOrderRequest(target, name, phone, itemId, referer string, cookies []
 	return request
 }
 
-func prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cookie) *http.Request {
+func (ord *Order) prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cookie) *http.Request {
 	request, err := http.NewRequest("GET", target, nil)
 	if err != nil {
 		log.WithError(err).Error("Failed to create request for order!")
@@ -148,7 +148,7 @@ func prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cooki
 	return request
 }
 
-func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
+func (ord *Order) prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
 	formData := url.Values{}
 	formData.Set("payment_method_id", "23")
 	formData.Set("checkout", "Применить")

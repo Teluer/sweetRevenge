@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"strings"
+	"sweetRevenge/src/config"
 	"sweetRevenge/src/db/dao"
 	"testing"
 )
@@ -23,7 +24,9 @@ func Test_createRandomCustomer(t *testing.T) {
 		},
 	}
 
-	orders.orderCfg.PhonePrefixes = "0;+373 ;+373"
+	ord := Order{OrderCfg: &config.OrdersConfig{}}
+
+	ord.OrderCfg.PhonePrefixes = "0;+373 ;+373"
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -39,7 +42,7 @@ func Test_createRandomCustomer(t *testing.T) {
 				tt.lastName + " " + tt.firstName, strings.ToLower(tt.lastName + " " + tt.firstName),
 			}
 
-			gotName, gotPhone := CreateRandomCustomer()
+			gotName, gotPhone := ord.CreateRandomCustomer()
 			mockDb.AssertNumberOfCalls(t, "GetLeastUsedPhone", 1)
 			mockDb.AssertNumberOfCalls(t, "GetLeastUsedFirstName", 1)
 			assert.Contains(t, possibleNames, gotName, "CreateRandomCustomer() gotName = %v, not in %v", gotName, possibleNames)

@@ -1,4 +1,4 @@
-package util
+package web
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"github.com/tebeka/selenium/chrome"
 	"math/rand"
 	"strings"
+	"sweetRevenge/src/util"
 	"time"
 )
 
@@ -19,7 +20,7 @@ type Selenium struct {
 func Connect(url, socksProxy string) *Selenium {
 	const port = 4444
 
-	userAgent := RandomUserAgent()
+	userAgent := util.RandomUserAgent()
 	log.Info("Starting selenium with user-agent = ", userAgent)
 
 	service, err := selenium.NewChromeDriverService("chromedriver", port)

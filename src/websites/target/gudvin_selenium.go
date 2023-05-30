@@ -3,15 +3,16 @@ package target
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"sweetRevenge/src/util"
+	"sweetRevenge/src/websites/target/captcha"
+	"sweetRevenge/src/websites/web"
 )
 
-func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string) {
+func (ord *Order) orderItemWithCustomerSelenium(name, phone, itemId, link string) {
 	//simpler to do with just tor
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) via Selenium",
 		name, phone, itemId))
 
-	selenium := util.Connect(link, socksProxy)
+	selenium := web.Connect(link, ord.SocksProxy)
 	defer selenium.Close()
 
 	selenium.MoveAround(1)
@@ -21,7 +22,7 @@ func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string)
 	selenium.MoveAround(2)
 	selenium.Input("#fn_fast_order input.fn_validate_fast_phone", phone)
 	selenium.MoveAround(2)
-	solveYandexCaptcha(selenium)
+	ord.solveYandexCaptcha(selenium)
 	selenium.MoveAround(2)
 	selenium.Click("#fn_fast_order input.fn_fast_order_submit")
 	selenium.WaitForRedirect("/order/")
@@ -29,16 +30,16 @@ func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string)
 	log.Info("Sent order successfully")
 }
 
-func solveYandexCaptcha(selenium *util.Selenium) {
+func (ord *Order) solveYandexCaptcha(selenium *web.Selenium) {
 	doc := selenium.GetDocument()
-	captcha := doc.Find("#fn_fast_order").Find("div.secret_number").Text()
-	if captcha == "" {
+	challenge := doc.Find("#fn_fast_order").Find("div.secret_number").Text()
+	if challenge == "" {
 		log.Info("No arithmetic captcha found, skipping captcha answer")
 		return
 	}
 
-	log.Info("Arithmetic captcha found, solving: " + captcha)
-	answer := util.SolveArithmeticCaptcha(captcha)
+	log.Info("Arithmetic captcha found, solving: " + challenge)
+	answer := captcha.SolveArithmeticCaptcha(challenge)
 	log.Info("Captcha solution: ", answer)
 
 	selenium.EnterCaptcha(answer)

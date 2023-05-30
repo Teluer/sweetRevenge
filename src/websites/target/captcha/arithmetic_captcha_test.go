@@ -1,4 +1,4 @@
-package util
+package captcha
 
 import (
 	"github.com/stretchr/testify/assert"

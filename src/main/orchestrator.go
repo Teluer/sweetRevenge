@@ -87,7 +87,11 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 
 		if readyToGo && ordersEnabled {
 			//synchronous to avoid server overload at high frequency
-			target.OrderItem(cfg.OrdersCfg, socksProxy)
+			order := target.Order{
+				OrderCfg:   &cfg.OrdersCfg,
+				SocksProxy: socksProxy,
+			}
+			order.OrderItem()
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")

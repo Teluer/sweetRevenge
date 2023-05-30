@@ -14,103 +14,103 @@ import (
 	"time"
 )
 
-var orders struct {
-	orderCfg           config.OrdersConfig
-	manualOrders       []*rabbitmq.ManualOrder
+type Order struct {
+	OrderCfg           *config.OrdersConfig
+	SocksProxy         string
 	currentTransaction dao.Database
 }
 
-func OrderItem(cfg config.OrdersConfig, socksProxy string) {
-	orders.orderCfg = cfg
-	orders.currentTransaction = dao.Dao.OpenTransaction()
-	defer util.RecoverAndRollbackAndLog("Orders", orders.currentTransaction)
+var manualOrders []*rabbitmq.ManualOrder
+
+func (ord *Order) OrderItem() {
+	ord.currentTransaction = dao.Dao.OpenTransaction()
+	defer util.RecoverAndRollbackAndLog("Orders", ord.currentTransaction)
 
 	//check manually prepared orders, if there are no manual orders then make random order
-	if !executeManualOrder(socksProxy) {
+	if !ord.executeManualOrder() {
 		log.Info("Sending random order")
-		name, phone := CreateRandomCustomer()
-		orderItemWithCustomer(name, phone, socksProxy)
+		name, phone := ord.CreateRandomCustomer()
+		ord.orderItemWithCustomer(name, phone)
 	}
-	orders.currentTransaction.CommitTransaction()
-	orders.currentTransaction = nil
+	ord.currentTransaction.CommitTransaction()
 }
 
-func orderItemWithCustomer(name, phone, socksProxy string) {
-	tor := web.OpenAnonymousSession(socksProxy)
-	itemId, link := findRandomItem(tor)
+func (ord *Order) orderItemWithCustomer(name, phone string) {
+	tor := web.OpenAnonymousSession(ord.SocksProxy)
+	itemId, link := ord.findRandomItem(tor)
 
-	if orders.orderCfg.SeleniumEnabled {
-		orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy)
+	if ord.OrderCfg.SeleniumEnabled {
+		ord.orderItemWithCustomerSelenium(name, phone, itemId, link)
 	} else {
-		orderItemWithCustomerTor(name, phone, itemId, link, tor)
+		ord.orderItemWithCustomerTor(name, phone, itemId, link, tor)
 	}
-	saveOrderHistory(name, phone, itemId)
+	ord.saveOrderHistory(name, phone, itemId)
 }
 
-func executeManualOrder(socksProxy string) bool {
+func (ord *Order) executeManualOrder() bool {
 	log.Info("Checking if should send manual orders")
-	if len(orders.manualOrders) == 0 {
+	if len(manualOrders) == 0 {
 		log.Info("Manual orders not found")
 		return false
 	}
 
-	order := orders.manualOrders[0]
+	order := manualOrders[0]
 	if order.Name == "" {
-		order.Name = generateName()
+		order.Name = ord.generateName()
 	}
 	if order.Phone == "" {
-		order.Phone = generatePhone()
+		order.Phone = ord.generatePhone()
 	}
 
 	log.Info(fmt.Sprintf("Sending manual order for %s %s", order.Name, order.Phone))
-	orderItemWithCustomer(order.Name, order.Phone, socksProxy)
-	orders.manualOrders = orders.manualOrders[1:]
+	ord.orderItemWithCustomer(order.Name, order.Phone)
+	manualOrders = manualOrders[1:]
 	return true
 }
 
 func QueueManualOrder(order *rabbitmq.ManualOrder) {
-	orders.manualOrders = append(orders.manualOrders, order)
+	manualOrders = append(manualOrders, order)
 }
 
-func CreateRandomCustomer() (name string, phone string) {
+func (ord *Order) CreateRandomCustomer() (name string, phone string) {
 	log.Info("Generating a random customer name/phone combination")
-	phone = generatePhone()
-	name = generateName()
+	phone = ord.generatePhone()
+	name = ord.generateName()
 	return
 }
 
-func generateName() string {
+func (ord *Order) generateName() string {
 	const firstNameOnlyIncidence = 0.2
 	const firstNameAfterLastNameIncidence = 0.6
 	const nameLowerCaseIncidence = 0.05
 
-	name := orders.currentTransaction.GetLeastUsedFirstName()
-	if !evaluateProbability(firstNameOnlyIncidence) {
-		if evaluateProbability(firstNameAfterLastNameIncidence) {
-			name = orders.currentTransaction.GetLeastUsedLastName() + " " + name
+	name := ord.currentTransaction.GetLeastUsedFirstName()
+	if !ord.evaluateProbability(firstNameOnlyIncidence) {
+		if ord.evaluateProbability(firstNameAfterLastNameIncidence) {
+			name = ord.currentTransaction.GetLeastUsedLastName() + " " + name
 		} else {
-			name = name + " " + orders.currentTransaction.GetLeastUsedLastName()
+			name = name + " " + ord.currentTransaction.GetLeastUsedLastName()
 		}
 	}
-	if evaluateProbability(nameLowerCaseIncidence) {
+	if ord.evaluateProbability(nameLowerCaseIncidence) {
 		name = strings.ToLower(name)
 	}
 	return name
 }
 
-func generatePhone() string {
-	phone := orders.currentTransaction.GetLeastUsedPhone()
-	prefixes := strings.Split(orders.orderCfg.PhonePrefixes, ";")
+func (ord *Order) generatePhone() string {
+	phone := ord.currentTransaction.GetLeastUsedPhone()
+	prefixes := strings.Split(ord.OrderCfg.PhonePrefixes, ";")
 	prefixIndex := rand.Intn(len(prefixes))
 	phone = prefixes[prefixIndex] + phone
 	return phone
 }
 
-func evaluateProbability(probability float64) bool {
+func (ord *Order) evaluateProbability(probability float64) bool {
 	return rand.Float64() < probability
 }
 
-func saveOrderHistory(name, phone, itemId string) {
+func (ord *Order) saveOrderHistory(name, phone, itemId string) {
 	var record = dto.OrderHistory{
 		Phone:         phone,
 		Name:          name,
@@ -118,5 +118,5 @@ func saveOrderHistory(name, phone, itemId string) {
 		OrderDateTime: time.Now(),
 	}
 
-	orders.currentTransaction.Insert(&record)
+	ord.currentTransaction.Insert(&record)
 }

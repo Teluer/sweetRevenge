@@ -79,6 +79,11 @@ func hasNextPage(htmlPage *goquery.Document) bool {
 func getLady(htmlPage *goquery.Document) dto.Lady {
 	phone, _ := htmlPage.Find("dl.js-phone-number").
 		Find("a").Attr("href")
+
+	if !strings.HasPrefix(phone, "tel:+373") {
+		log.Warn("Bad phone prefix in a lady: ", phone)
+		return dto.Lady{}
+	}
 	phone = strings.TrimPrefix(phone, "tel:+373")
 
 	return dto.Lady{Phone: phone}
