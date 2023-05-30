@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -106,7 +107,7 @@ func (s *Selenium) WaitForRedirect(url string) {
 
 	err := webDriver.Wait(condition)
 	if err != nil {
-		log.Errorf("Wait for redirect failed: %v", err)
+		log.Errorf("Oder probably failed! Wait for redirect failed: %v", err)
 		panic(err)
 	}
 }
@@ -123,6 +124,37 @@ func (s *Selenium) Input(selector, value string) {
 	if err != nil {
 		log.Errorf("Failed to input: %v", err)
 		panic(err)
+	}
+}
+
+func (s *Selenium) Idle(minSeconds, maxSeconds float64) {
+	seconds := (maxSeconds-minSeconds)*rand.Float64() + minSeconds
+	sleepDuration := time.Duration(float64(time.Second) * seconds)
+	time.Sleep(sleepDuration)
+}
+
+// movements may take longer than minDuration
+func (s *Selenium) MoveAround(minDuration time.Duration) {
+	webDriver := *s.driver
+	body, err := webDriver.FindElement(selenium.ByTagName, "body")
+	if err != nil {
+		log.Error("Couldn't find body, won't move around")
+		return
+	}
+	size, err := body.Size()
+	if err != nil {
+		log.Error("Couldn't get body size, won't move around")
+		return
+	}
+
+	shouldEnd := time.Now().Add(minDuration)
+	for time.Now().Before(shouldEnd) {
+		x := rand.Intn(size.Width) - size.Width/2   //left or right movement
+		y := rand.Intn(size.Height) - size.Height/2 //up or down movement
+		err = body.MoveTo(x, y)
+		if err != nil {
+			log.Error("Failed to move mouse")
+		}
 	}
 }
 

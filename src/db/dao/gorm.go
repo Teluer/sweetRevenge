@@ -10,6 +10,9 @@ import (
 type Database interface {
 	OpenDatabaseConnection(string)
 	AutoMigrateAll()
+	OpenTransaction() Database
+	CommitTransaction()
+	RollbackTransaction()
 	Insert(obj any)
 	Delete(obj any)
 	IsTableEmpty(obj any) bool
@@ -17,7 +20,7 @@ type Database interface {
 
 	SelectPhones() []string
 	GetLeastUsedPhone() string
-	SaveNewLadies(ladies []dto.Lady)
+	SaveNewLadies(ladies []dto.Lady) (inserted int)
 	GetLeastUsedFirstName() string
 	GetLeastUsedLastName() string
 }
@@ -44,6 +47,18 @@ func (d *GormDao) AutoMigrateAll() {
 		&dto.LastName{},
 		&dto.Lady{},
 		&dto.OrderHistory{})
+}
+
+func (d *GormDao) OpenTransaction() Database {
+	return &GormDao{d.db.Begin()}
+}
+
+func (d *GormDao) CommitTransaction() {
+	d.db.Commit()
+}
+
+func (d *GormDao) RollbackTransaction() {
+	d.db.Rollback()
 }
 
 func (d *GormDao) Insert(obj any) {

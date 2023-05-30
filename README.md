@@ -50,3 +50,4 @@
 - After order #165, a control order on a friend's number was submitted to check if the operator still calls the clients, and it worked. This is puzzling, because it would be so easy to check source IP of the order and ignore foreign IP addresses. Looks like human stupidity is the most powerful weapon after all.
 - After order #235, the website enabled another (surprisingly easy) captcha. Selenium flow and captcha-solving logic were implemented a day later.
 - After order #249, the website removed captcha again, because it didn't make any difference. Configs updated to increase order frequency.
+- 

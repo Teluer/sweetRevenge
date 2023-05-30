@@ -15,21 +15,24 @@ import (
 )
 
 var orders struct {
-	orderCfg     config.OrdersConfig
-	manualOrders []*rabbitmq.ManualOrder
+	orderCfg           config.OrdersConfig
+	manualOrders       []*rabbitmq.ManualOrder
+	currentTransaction dao.Database
 }
 
 func OrderItem(cfg config.OrdersConfig, socksProxy string) {
-	defer util.RecoverAndLogError("Orders")
-
 	orders.orderCfg = cfg
+	orders.currentTransaction = dao.Dao.OpenTransaction()
+	defer util.RecoverAndRollbackAndLog("Orders", orders.currentTransaction)
+
 	//check manually prepared orders, if there are no manual orders then make random order
 	if !executeManualOrder(socksProxy) {
 		log.Info("Sending random order")
 		name, phone := CreateRandomCustomer()
-
 		orderItemWithCustomer(name, phone, socksProxy)
 	}
+	orders.currentTransaction.CommitTransaction()
+	orders.currentTransaction = nil
 }
 
 func orderItemWithCustomer(name, phone, socksProxy string) {
@@ -81,12 +84,12 @@ func generateName() string {
 	const firstNameAfterLastNameIncidence = 0.6
 	const nameLowerCaseIncidence = 0.05
 
-	name := dao.Dao.GetLeastUsedFirstName()
+	name := orders.currentTransaction.GetLeastUsedFirstName()
 	if !evaluateProbability(firstNameOnlyIncidence) {
 		if evaluateProbability(firstNameAfterLastNameIncidence) {
-			name = dao.Dao.GetLeastUsedLastName() + " " + name
+			name = orders.currentTransaction.GetLeastUsedLastName() + " " + name
 		} else {
-			name = name + " " + dao.Dao.GetLeastUsedLastName()
+			name = name + " " + orders.currentTransaction.GetLeastUsedLastName()
 		}
 	}
 	if evaluateProbability(nameLowerCaseIncidence) {
@@ -96,7 +99,7 @@ func generateName() string {
 }
 
 func generatePhone() string {
-	phone := dao.Dao.GetLeastUsedPhone()
+	phone := orders.currentTransaction.GetLeastUsedPhone()
 	prefixes := strings.Split(orders.orderCfg.PhonePrefixes, ";")
 	prefixIndex := rand.Intn(len(prefixes))
 	phone = prefixes[prefixIndex] + phone
@@ -115,5 +118,5 @@ func saveOrderHistory(name, phone, itemId string) {
 		OrderDateTime: time.Now(),
 	}
 
-	dao.Dao.Insert(&record)
+	orders.currentTransaction.Insert(&record)
 }

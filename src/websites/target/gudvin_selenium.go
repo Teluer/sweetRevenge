@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"sweetRevenge/src/util"
-	"time"
 )
 
 func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string) {
@@ -15,11 +14,15 @@ func orderItemWithCustomerSelenium(name, phone, itemId, link, socksProxy string)
 	selenium := util.Connect(link, socksProxy)
 	defer selenium.Close()
 
+	selenium.MoveAround(1)
 	selenium.Click("a.fn_fast_order_button")
-	time.Sleep(time.Second * 3)
+	selenium.MoveAround(3)
 	selenium.Input("#fn_fast_order input.fn_validate_fast_name", name)
+	selenium.MoveAround(2)
 	selenium.Input("#fn_fast_order input.fn_validate_fast_phone", phone)
+	selenium.MoveAround(2)
 	solveYandexCaptcha(selenium)
+	selenium.MoveAround(2)
 	selenium.Click("#fn_fast_order input.fn_fast_order_submit")
 	selenium.WaitForRedirect("/order/")
 
