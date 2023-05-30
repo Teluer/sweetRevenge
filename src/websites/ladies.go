@@ -11,6 +11,7 @@ import (
 	"sweetRevenge/src/db/dto"
 	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites/web"
+	"sync"
 	"time"
 )
 
@@ -18,10 +19,16 @@ func UpdateLadies(ladiesBaseUrl string, ladiesUrls []string, socksProxy string) 
 	defer util.RecoverAndLog("LadiesUpdate")
 
 	log.Info("Ladies update triggered")
+	var mu = sync.Mutex{}
 	totalInserted := 0
 	tor := web.OpenAnonymousSession(socksProxy)
 	for _, ladyCategory := range ladiesUrls {
-		totalInserted += fetchLadies(ladiesBaseUrl, ladyCategory, tor)
+		go func() {
+			newLadiesCount := fetchLadies(ladiesBaseUrl, ladyCategory, tor)
+			mu.Lock()
+			totalInserted += newLadiesCount
+			mu.Unlock()
+		}()
 	}
 	log.Info(fmt.Sprintf("Found %d new ladies", totalInserted))
 }
@@ -80,7 +87,7 @@ func getLady(htmlPage *goquery.Document) dto.Lady {
 	phone, _ := htmlPage.Find("dl.js-phone-number").
 		Find("a").Attr("href")
 
-	if !strings.HasPrefix(phone, "tel:+373") {
+	if phone != "" && !strings.HasPrefix(phone, "tel:+373") {
 		log.Warn("Bad phone prefix in a lady: ", phone)
 		return dto.Lady{}
 	}

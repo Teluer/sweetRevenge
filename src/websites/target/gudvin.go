@@ -17,12 +17,16 @@ import (
 type Order struct {
 	OrderCfg           *config.OrdersConfig
 	SocksProxy         string
+	ConcurrencyCh      chan struct{}
 	currentTransaction dao.Database
 }
 
 var manualOrders []*rabbitmq.ManualOrder
 
 func (ord *Order) OrderItem() {
+	//notify channel when order completed
+	defer func() { <-ord.ConcurrencyCh }()
+
 	ord.currentTransaction = dao.Dao.OpenTransaction()
 	defer util.RecoverAndRollbackAndLog("Orders", ord.currentTransaction)
 

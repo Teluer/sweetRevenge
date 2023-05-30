@@ -76,7 +76,10 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		log.Warn("Sending initial order without delay!")
 	}
 
+	concurrencyCh := make(chan struct{}, cfg.SendOrdersMaxThreads)
+
 	for {
+		concurrencyCh <- struct{}{}
 		log.Info("sendOrdersJob: Order flow triggered")
 		sleepAtNight(cfg, loc)
 
@@ -86,12 +89,12 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			//synchronous to avoid server overload at high frequency
 			order := target.Order{
-				OrderCfg:   &cfg.OrdersCfg,
-				SocksProxy: socksProxy,
+				OrderCfg:      &cfg.OrdersCfg,
+				SocksProxy:    socksProxy,
+				ConcurrencyCh: concurrencyCh,
 			}
-			order.OrderItem()
+			go order.OrderItem()
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")
@@ -124,6 +127,6 @@ func sleepAtNight(cfg *config.OrdersRoutineConfig, loc *time.Location) {
 		return
 	}
 	log.Info("sendOrdersJob: Beyond work hours, sleeping until " +
-		time.Now().Add(sleepDuration).Format("2006-01-02 15:04:05"))
+		time.Now().Add(sleepDuration).In(loc).Format("2006-01-02 15:04:05"))
 	time.Sleep(sleepDuration)
 }

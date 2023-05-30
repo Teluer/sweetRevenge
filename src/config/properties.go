@@ -20,6 +20,7 @@ type Config struct {
 
 type OrdersRoutineConfig struct {
 	SendOrdersMaxInterval time.Duration `properties:"send.interval.max"`
+	SendOrdersMaxThreads  int           `properties:"send.threads.limit"`
 	StartDelay            bool          `properties:"start.delay"`
 	DayStart              time.Duration `properties:"day.start"`
 	DayEnd                time.Duration `properties:"day.end"`
