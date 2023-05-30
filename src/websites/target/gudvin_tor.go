@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites/web"
 )
 
@@ -100,7 +101,7 @@ func prepareOrderRequest(target, name, phone, itemId, referer string, cookies []
 	}
 
 	//set proper headers
-	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("User-Agent", util.RandomUserAgent())
 	request.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
@@ -130,7 +131,7 @@ func prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cooki
 		request.AddCookie(cookie)
 	}
 
-	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("User-Agent", util.RandomUserAgent())
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	request.Header.Set("Accept-Encoding", "gzip, deflate, br")
@@ -165,7 +166,7 @@ func prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Req
 		request.AddCookie(cookie)
 	}
 
-	request.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0")
+	request.Header.Set("User-Agent", util.RandomUserAgent())
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	request.Header.Set("Accept-Encoding", "gzip, deflate, br")

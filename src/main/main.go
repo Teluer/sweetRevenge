@@ -29,7 +29,6 @@ func main() {
 		log.WithError(err).Fatal("Failed to parse configs")
 	}
 
-	//TODO: not smart to keep one connection for the entire lifecycle
 	dao.Dao.OpenDatabaseConnection(cfg.DatabaseDsn)
 	dao.Dao.AutoMigrateAll()
 

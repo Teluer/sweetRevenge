@@ -18,6 +18,9 @@ type Selenium struct {
 func Connect(url, socksProxy string) *Selenium {
 	const port = 4444
 
+	userAgent := RandomUserAgent()
+	log.Info("Starting selenium with user-agent = ", userAgent)
+
 	service, err := selenium.NewChromeDriverService("chromedriver", port)
 	if err != nil {
 		log.Errorf("Failed to start the WebDriver service: %v", err)
@@ -37,6 +40,10 @@ func Connect(url, socksProxy string) *Selenium {
 		Args: []string{
 			"--no-sandbox",
 			"--headless", // Run Chrome in headless mode (without UI)
+			"--user-agent=" + userAgent,
+		},
+		Prefs: map[string]interface{}{
+			"enable_do_not_track": true,
 		},
 	}
 	caps.AddChrome(cc)

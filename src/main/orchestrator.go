@@ -79,11 +79,14 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		log.Info("sendOrdersJob: Order flow triggered")
 		sleepAtNight(cfg, loc)
 
+		jobStart := time.Now().In(loc)
+
 		readyToGo := dao.Dao.ValidateDataIntegrity()
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			go target.OrderItem(cfg.OrdersCfg, socksProxy)
+			//synchronous to avoid server overload at high frequency
+			target.OrderItem(cfg.OrdersCfg, socksProxy)
 		} else {
 			if !readyToGo {
 				log.Warn("Cannot send orders due to empty database tables, please check DB!")
@@ -92,7 +95,8 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 				log.Info("SendOrdersEnabled = false, not sending anything")
 			}
 		}
-		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval) * rand.Float64())
+		jobDuration := time.Now().In(loc).Sub(jobStart)
+		sleepDuration := time.Duration(float64(cfg.SendOrdersMaxInterval)*rand.Float64()) - jobDuration
 		log.Infof("sendOrdersJob: scheduling next order in %.2f minutes", float64(sleepDuration)/float64(time.Minute))
 		time.Sleep(sleepDuration)
 	}
