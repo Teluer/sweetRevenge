@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/ring"
 	"github.com/go-co-op/gocron"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
@@ -16,7 +17,7 @@ import (
 )
 
 func programLogic(cfg *config.Config, loc *time.Location) {
-	log.Info("Program startup")
+	log.Info("Bootstrapping goroutines")
 
 	//wait for the updates to complete, then proceed with orders.
 	//this is unnecessary since data integrity checks are in place, keeping this just for lulz
@@ -27,13 +28,15 @@ func programLogic(cfg *config.Config, loc *time.Location) {
 	wg.Wait()
 
 	//using scheduler
-	scheduleUpdateLadiesJob(cfg.LadiesCfg, loc, cfg.SocksProxyAddress)
+	scheduleUpdatePhonesJob(cfg.PhonesCfg, loc, cfg.SocksProxyAddress)
 
 	go manualOrdersJob()
 	//everything ready, start sending orders
 	go sendOrdersJob(&cfg.OrdersRoutineCfg, loc, cfg.SocksProxyAddress)
 
 	go admin.StartControlPanelServer(&cfg.OrdersRoutineCfg)
+
+	log.Info("Program initialization complete, LET THE FUN BEGIN!")
 }
 
 func manualOrdersJob() {
@@ -48,18 +51,18 @@ func manualOrdersJob() {
 	}
 }
 
-func scheduleUpdateLadiesJob(cfg config.LadiesConfig, loc *time.Location, socksProxy string) {
-	startTime := time.Now().Add(cfg.UpdateLadiesStartDelay)
+func scheduleUpdatePhonesJob(cfg config.PhonesConfig, loc *time.Location, socksProxy string) {
+	startTime := time.Now().Add(cfg.UpdatePhonesStartDelay)
 
-	s := gocron.NewScheduler(loc).Every(cfg.UpdateLadiesInterval).StartAt(startTime)
+	s := gocron.NewScheduler(loc).Every(cfg.UpdatePhonesInterval).StartAt(startTime)
 	_, err := s.Do(func() {
-		websites.UpdateLadies(cfg.LadiesBaseUrl, cfg.LadiesUrls, socksProxy)
+		websites.UpdatePhones(cfg.PhonesBaseUrl, cfg.PhoneUrls, socksProxy, cfg.UpdatePhonesThreadsLimit)
 	})
 
 	if err != nil {
-		log.WithError(err).Error("Failed to start UpdateLadies job")
+		log.WithError(err).Error("Failed to start UpdatePhones job")
 	} else {
-		log.Info("Starting update ladies routine")
+		log.Info("Starting UpdatePhones job")
 		s.StartAsync()
 	}
 }
@@ -74,6 +77,13 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		time.Sleep(sleepDuration)
 	} else {
 		log.Warn("Sending initial order without delay!")
+	}
+
+	//populate thread ids to run selenium on different ports
+	routineIds := ring.New(cfg.SendOrdersMaxThreads)
+	for i := 0; i < cfg.SendOrdersMaxThreads; i++ {
+		routineIds.Value = i
+		routineIds = routineIds.Next()
 	}
 
 	concurrencyCh := make(chan struct{}, cfg.SendOrdersMaxThreads)
@@ -93,7 +103,10 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 				OrderCfg:      &cfg.OrdersCfg,
 				SocksProxy:    socksProxy,
 				ConcurrencyCh: concurrencyCh,
+				ThreadId:      routineIds.Value.(int),
 			}
+			routineIds = routineIds.Next()
+
 			go order.OrderItem()
 		} else {
 			if !readyToGo {

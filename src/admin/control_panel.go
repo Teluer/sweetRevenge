@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sweetRevenge/src/config"
 	"sweetRevenge/src/rabbitmq"
+	"sweetRevenge/src/websites/target"
 	"sync"
 	"time"
 )
@@ -46,6 +47,14 @@ var templ = `<!DOCTYPE html>
             <br>
             <label class="response-label" style="color:red;"></label>
         </form>
+        <h1>Generate Customer</h1>
+        <form method="POST" id="CustomerForm" action="/customer">
+            <label>Warning: this marks phone and name as used!</label>
+            <br>
+            <input type="submit" value="Generate">
+            <br>
+            <label class="response-label" style="color:red;"></label>
+        </form>
         <script>
           listener = function(event) {
 			event.preventDefault(); // Prevent the default form submission
@@ -69,6 +78,7 @@ var templ = `<!DOCTYPE html>
 		  };
 		  document.getElementById("ConfForm").addEventListener("submit", listener);
           document.getElementById("OrderForm").addEventListener("submit", listener);
+          document.getElementById("CustomerForm").addEventListener("submit", listener);
 		</script>
     </body>
     </html>`
@@ -84,6 +94,7 @@ func StartControlPanelServer(cfg *config.OrdersRoutineConfig) {
 	http.HandleFunc("/admin", controlPanelHandler(cfg)) // each request calls handler
 	http.HandleFunc("/conf", configHandler(cfg))
 	http.HandleFunc("/order", orderHandler)
+	http.HandleFunc("/customer", customerHandler(&cfg.OrdersCfg))
 
 	log.Error(http.ListenAndServe("0.0.0.0:8008", nil))
 }
@@ -148,5 +159,14 @@ func orderHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Manual order submission failed! See logs for more info."))
 	} else {
 		w.Write([]byte("Manual order submitted. Will be sent at scheduled time."))
+	}
+}
+
+func customerHandler(cfg *config.OrdersConfig) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name, phone := (&target.Order{
+			OrderCfg: cfg,
+		}).CreateRandomCustomer()
+		w.Write([]byte(name + ", " + phone))
 	}
 }

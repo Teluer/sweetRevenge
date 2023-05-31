@@ -12,10 +12,10 @@ func (ord *Order) orderItemWithCustomerSelenium(name, phone, itemId, link string
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) via Selenium",
 		name, phone, itemId))
 
-	selenium := web.Connect(link, ord.SocksProxy)
+	selenium := web.Connect(link, ord.SocksProxy, ord.ThreadId)
 	defer selenium.Close()
 
-	selenium.MoveAround(1)
+	selenium.MoveAround(2)
 	selenium.Click("a.fn_fast_order_button")
 	selenium.MoveAround(3)
 	selenium.Input("#fn_fast_order input.fn_validate_fast_name", name)
@@ -25,6 +25,7 @@ func (ord *Order) orderItemWithCustomerSelenium(name, phone, itemId, link string
 	ord.solveYandexCaptcha(selenium)
 	selenium.MoveAround(2)
 	selenium.Click("#fn_fast_order input.fn_fast_order_submit")
+	//selenium.SolveReCaptcha()
 	selenium.WaitForRedirect("/order/")
 
 	log.Info("Sent order successfully")

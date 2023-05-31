@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+type ManualOrder struct {
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+}
+
 var rabbit struct {
 	rabbitPool *pool.Pool
 	queue      string

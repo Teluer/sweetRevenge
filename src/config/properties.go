@@ -15,7 +15,7 @@ type Config struct {
 	LastNamesUrl      string `properties:"url.lastnames"`
 	DatabaseDsn       string `properties:"db.dsn"`
 
-	LadiesCfg LadiesConfig `properties:"ladies"`
+	PhonesCfg PhonesConfig `properties:"phones"`
 }
 
 type OrdersRoutineConfig struct {
@@ -42,9 +42,10 @@ type RabbitConfig struct {
 	QueueName string `properties:"queue"`
 }
 
-type LadiesConfig struct {
-	UpdateLadiesInterval   time.Duration `properties:"update.interval"`
-	UpdateLadiesStartDelay time.Duration `properties:"start.delay"`
-	LadiesBaseUrl          string        `properties:"base"`
-	LadiesUrls             []string      `properties:"categories"`
+type PhonesConfig struct {
+	UpdatePhonesInterval     time.Duration `properties:"update.interval"`
+	UpdatePhonesThreadsLimit int           `properties:"update.threads.limit"`
+	UpdatePhonesStartDelay   time.Duration `properties:"start.delay"`
+	PhonesBaseUrl            string        `properties:"base"`
+	PhoneUrls                []string      `properties:"categories"`
 }

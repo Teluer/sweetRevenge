@@ -33,7 +33,8 @@
 - Docker
 
 ## Order Concealing ##
-- Send orders at random intervals, keeping a predefined mean rate
+- Send orders at random intervals
+- Keep mean order rate low enough (around 30-60 minutes) to avoid causing panic
 - Send orders from random IP addresses
 - Use random user-agent header
 - Use random phone and name formats
@@ -43,11 +44,13 @@
 - For selenium flow, make random user actions while filling the order form
 
 ## Project story ##
-- First working instance was built within a week and sent several dozens of orders
+- First working instance was built within a week and sent several dozens of orders.
 - After order #45, the web shop enabled Google ReCaptcha. Ability to bypass captcha was partially implemented but couldn't be tested, because...
 - The webshop disabled captcha a day later. Either the admin assumed captcha didn't help, because some fake orders were sent manually, or the admin decided captcha would spoil user experience.
 - The project was rolled back to non-captcha logic, which is fortunate, because current ReCaptcha solution requires a captcha-solving browser extension and must use VPN instead of TOR.
 - After order #165, a control order on a friend's number was submitted to check if the operator still calls, and it worked. This is puzzling, because it would be so easy to check source and ignore foreign IP addresses. Looks like human stupidity is the most powerful weapon after all.
 - After order #235, the website enabled another (surprisingly easy) captcha. Selenium flow and captcha-solving logic were implemented a day later.
-- After order #249, the website removed captcha again, because it didn't make any difference. The program didn't need any changes and continued working normally. Configs updated to increase order frequency as a punishment.
-- After order #362, it starts getting boring. Running out of phones again, adding new phone categories: sport nutrition and bio-additives
+- After order #249, the website removed captcha again, because it didn't make any difference. The program didn't need any changes and continued working normally. Order interval temporally reduced to 4 minutes 30 seconds as a punishment.
+- After order #362, it starts getting boring. Running out of phones again, adding new phone categories.
+- After order #366, ReCaptcha came back. This one is hard to solve. Maybe it's time to wrap things up. Final project stage: improve order sending mechanism, wait for captcha to be removed (if this happens), fire as many orders as possible.
+- Parallel order sending implemented. The flow successfully reaches recaptcha challenge (and then fails).

@@ -17,6 +17,7 @@ import (
 type Order struct {
 	OrderCfg           *config.OrdersConfig
 	SocksProxy         string
+	ThreadId           int
 	ConcurrencyCh      chan struct{}
 	currentTransaction dao.Database
 }
@@ -28,7 +29,7 @@ func (ord *Order) OrderItem() {
 	defer func() { <-ord.ConcurrencyCh }()
 
 	ord.currentTransaction = dao.Dao.OpenTransaction()
-	defer util.RecoverAndRollbackAndLog("Orders", ord.currentTransaction)
+	defer util.RecoverAndLogAndDo("Orders", ord.currentTransaction.RollbackTransaction)
 
 	//check manually prepared orders, if there are no manual orders then make random order
 	if !ord.executeManualOrder() {
@@ -88,12 +89,13 @@ func (ord *Order) generateName() string {
 	const firstNameAfterLastNameIncidence = 0.6
 	const nameLowerCaseIncidence = 0.05
 
-	name := ord.currentTransaction.GetLeastUsedFirstName()
+	name := ord.transactionOrDb().GetLeastUsedFirstName()
 	if !ord.evaluateProbability(firstNameOnlyIncidence) {
+		lastName := ord.transactionOrDb().GetLeastUsedLastName()
 		if ord.evaluateProbability(firstNameAfterLastNameIncidence) {
-			name = ord.currentTransaction.GetLeastUsedLastName() + " " + name
+			name = lastName + " " + name
 		} else {
-			name = name + " " + ord.currentTransaction.GetLeastUsedLastName()
+			name = name + " " + lastName
 		}
 	}
 	if ord.evaluateProbability(nameLowerCaseIncidence) {
@@ -103,7 +105,7 @@ func (ord *Order) generateName() string {
 }
 
 func (ord *Order) generatePhone() string {
-	phone := ord.currentTransaction.GetLeastUsedPhone()
+	phone := ord.transactionOrDb().GetLeastUsedPhone()
 	prefixes := strings.Split(ord.OrderCfg.PhonePrefixes, ";")
 	prefixIndex := rand.Intn(len(prefixes))
 	phone = prefixes[prefixIndex] + phone
@@ -123,4 +125,12 @@ func (ord *Order) saveOrderHistory(name, phone, itemId string) {
 	}
 
 	ord.currentTransaction.Insert(&record)
+}
+
+func (ord *Order) transactionOrDb() dao.Database {
+	if ord.currentTransaction == nil {
+		return dao.Dao
+	} else {
+		return ord.currentTransaction
+	}
 }

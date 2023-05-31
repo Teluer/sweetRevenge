@@ -1,10 +1,10 @@
 package dto
 
-type Lady struct {
+type Phone struct {
 	Phone     string `gorm:"primaryKey;type:varchar(15)"`
 	UsedTimes int
 }
 
-func (Lady) TableName() string {
+func (Phone) TableName() string {
 	return "ladies"
 }

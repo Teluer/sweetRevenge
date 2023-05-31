@@ -2,7 +2,6 @@ package util
 
 import (
 	log "github.com/sirupsen/logrus"
-	"sweetRevenge/src/db/dao"
 )
 
 func RecoverAndLog(flowName string) {
@@ -12,10 +11,10 @@ func RecoverAndLog(flowName string) {
 	}
 }
 
-func RecoverAndRollbackAndLog(flowName string, tx dao.Database) {
+func RecoverAndLogAndDo(flowName string, action func()) {
 	err := recover()
 	if err != nil {
-		tx.RollbackTransaction()
 		log.Error(flowName, " flow recovered from error: ", err)
+		action()
 	}
 }

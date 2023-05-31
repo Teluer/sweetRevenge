@@ -7,6 +7,7 @@ import (
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sweetRevenge/src/util"
 	"time"
@@ -17,8 +18,8 @@ type Selenium struct {
 	driver  *selenium.WebDriver
 }
 
-func Connect(url, socksProxy string) *Selenium {
-	const port = 4444
+func Connect(url, socksProxy string, routineId int) *Selenium {
+	port := 4444 + routineId
 
 	userAgent := util.RandomUserAgent()
 	log.Info("Starting selenium with user-agent = ", userAgent)
@@ -43,6 +44,8 @@ func Connect(url, socksProxy string) *Selenium {
 			"--no-sandbox",
 			"--headless", // Run Chrome in headless mode (without UI)
 			"--user-agent=" + userAgent,
+			"--remote-debugging-port=" + strconv.Itoa(9222+routineId),
+			"--temp-profile=tmpp" + strconv.Itoa(routineId),
 		},
 		Prefs: map[string]interface{}{
 			"enable_do_not_track": true,
@@ -61,7 +64,7 @@ func Connect(url, socksProxy string) *Selenium {
 
 	err = webDriver.Get(url)
 	if err != nil {
-		log.Errorf("Failed to navigate to Google: %v", err)
+		log.Errorf("Failed to navigate to url: %v", err)
 		panic(err)
 	}
 
@@ -174,32 +177,24 @@ func (s *Selenium) EnterCaptcha(value string) {
 	}
 }
 
+// this fails with TOR or socks proxy
 func (s *Selenium) SolveReCaptcha() {
 	webDriver := *s.driver
 
-	captcha, err := webDriver.FindElement(selenium.ByCSSSelector, "iframe[title='reCAPTCHA']")
+	time.Sleep(time.Second * 3)
+	challenge, err := webDriver.FindElement(selenium.ByCSSSelector, "iframe[title='recaptcha challenge expires in two minutes']")
 	if err != nil {
-		log.Fatalf("Failed to find  captcha: %v", err)
-	}
-	webDriver.SwitchFrame(captcha)
-	checkbox, err := webDriver.FindElement(selenium.ByCSSSelector, "#recaptcha-anchor")
-	if err != nil {
-		log.Fatalf("Failed to find captcha checkbox: %v", err)
-	}
-	checkbox.Click()
-	webDriver.SwitchFrame(nil)
-
-	time.Sleep(time.Second * 5)
-	challenge, err := webDriver.FindElement(selenium.ByCSSSelector, "iframe[title='recaptcha challenge expires in two minutes']") //title="recaptcha challenge expires in two minutes"
-	if err != nil {
-		log.Fatalf("Failed to find captcha challenge frame: %v", err)
+		log.Warnf("Failed to find captcha challenge frame: %v", err)
+		return
 	}
 	webDriver.SwitchFrame(challenge)
 
 	button, err := webDriver.FindElement(selenium.ByCSSSelector, "div.help-button-holder")
 	if err != nil {
-		log.Fatalf("Failed to find the search input element: %v", err)
+		log.Errorf("Failed to find captcha-solving button: %v", err)
+		panic(err)
 	}
 
 	button.Click()
+	webDriver.SwitchFrame(nil)
 }

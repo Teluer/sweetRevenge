@@ -20,7 +20,7 @@ type Database interface {
 
 	SelectPhones() []string
 	GetLeastUsedPhone() string
-	SaveNewLadies(ladies []dto.Lady) (inserted int)
+	SaveNewPhones(phones []dto.Phone) (inserted int)
 	GetLeastUsedFirstName() string
 	GetLeastUsedLastName() string
 }
@@ -45,7 +45,7 @@ func (d *GormDao) AutoMigrateAll() {
 	d.db.AutoMigrate(
 		&dto.FirstName{},
 		&dto.LastName{},
-		&dto.Lady{},
+		&dto.Phone{},
 		&dto.OrderHistory{})
 }
 
@@ -78,5 +78,5 @@ func (d *GormDao) IsTableEmpty(obj any) bool {
 func (d *GormDao) ValidateDataIntegrity() bool {
 	return !(Dao.IsTableEmpty(&dto.FirstName{}) ||
 		Dao.IsTableEmpty(&dto.LastName{}) ||
-		Dao.IsTableEmpty(&dto.Lady{}))
+		Dao.IsTableEmpty(&dto.Phone{}))
 }
