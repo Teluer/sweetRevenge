@@ -20,6 +20,8 @@ var rabbit struct {
 	queue      string
 }
 
+// InitializeRabbitMq tests connection to RabbitMq and declares a single queue for manual orders flow.
+// cfg should contain a valid rabbitmq host and the desired queue name.
 func InitializeRabbitMq(cfg config.RabbitConfig) {
 	log.Info("Initializing rabbitmq connection")
 	//wait for rabbitmq to initialize
@@ -29,7 +31,7 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 	rabbit.queue = cfg.QueueName
 
 	// Declare queue
-	ch := GetChannel()
+	ch := Channel()
 	defer ch.Close()
 
 	_, err := ch.QueueDeclare(
@@ -45,6 +47,8 @@ func InitializeRabbitMq(cfg config.RabbitConfig) {
 	}
 }
 
+// TestConnection tries to connect to the MQ.
+// It returns true if connection could be established and false otherwise.
 func TestConnection(url string) bool {
 	const maxRetries = 5
 	const retryTimeout = time.Second * 5
@@ -64,7 +68,8 @@ func TestConnection(url string) bool {
 	return false
 }
 
-func GetChannel() *amqp.Channel {
+// Channel returns an amqp channel
+func Channel() *amqp.Channel {
 	conn, err := (*rabbit.rabbitPool).Get()
 	if err != nil {
 		log.Panic("Failed to acquire connection from pool:", err)
@@ -85,7 +90,7 @@ func GetChannel() *amqp.Channel {
 func ConsumeManualOrder() *ManualOrder {
 	defer util.RecoverAndLog("RabbitMq")
 
-	ch := GetChannel()
+	ch := Channel()
 	defer ch.Close()
 	messages, err := ch.Consume(
 		rabbit.queue, // queue
@@ -116,7 +121,7 @@ func ConsumeManualOrder() *ManualOrder {
 
 func Publish(order *ManualOrder) error {
 	// RabbitMQ connection URL
-	ch := GetChannel()
+	ch := Channel()
 	defer ch.Close()
 
 	// Publish a message to the queue

@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// PanicIfVpnNotEnabled geolocates current IP address and panics if current location is Moldova.
 func PanicIfVpnNotEnabled() {
 	resp, err := http.Get("https://api.ipgeolocation.io/ipgeo?apiKey=e202c70dc7b04e0b83d69b27d2c16997")
 	if err != nil {

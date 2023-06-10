@@ -8,32 +8,32 @@ import (
 	"net/http"
 )
 
-type TorSession struct {
+type SocksConnection struct {
 	client *http.Client
 }
 
-func openNewSession(proxyUrl string) *TorSession {
+func connectToSocksProxy(proxyUrl string) *SocksConnection {
 	log.Debug("Opening TOR session")
 	dialer, err := proxy.SOCKS5("tcp", proxyUrl, nil, proxy.Direct)
 	if err != nil {
-		log.WithError(err).Error("Failed to connect to TOR!")
+		log.WithError(err).Error("Failed to connect to SOCKS proxy!")
 		panic(err)
 	}
 
-	var ts TorSession
+	var ts SocksConnection
 	ts.client = &http.Client{
 		Transport: &http.Transport{
 			Dial: dialer.Dial,
 		},
 	}
-	log.Debug("Established TOR session successfully")
+	log.Debug("Established SOCKS connection successfully")
 	return &ts
 }
 
-func (ts *TorSession) anonymousRequest(req *http.Request) (*http.Response, []byte) {
+func (ts *SocksConnection) socksRequest(req *http.Request) (*http.Response, []byte) {
 	if ts.client == nil {
-		log.Error("Tor client not initialized")
-		panic("need to init client first!")
+		log.Error("SOCKS client not initialized")
+		panic("need to init SOCKS client first!")
 	}
 
 	log.Debug("Sending anonymous request to url:" + req.URL.String())
@@ -48,16 +48,16 @@ func (ts *TorSession) anonymousRequest(req *http.Request) (*http.Response, []byt
 	return resp, body
 }
 
-func (ts *TorSession) getAnonymously(url string) (*http.Response, []byte) {
+func (ts *SocksConnection) socksGet(url string) (*http.Response, []byte) {
 	if ts.client == nil {
-		log.Error("Tor client not initialized")
-		panic("need to init client first!")
+		log.Error("SOCKS client not initialized")
+		panic("need to init SOCKS client first!")
 	}
 
 	log.Debug("Sending anonymous GET to url:" + url)
 	resp, err := ts.client.Get(url)
 	if err != nil {
-		log.WithError(err).Error("Anonymous get request failed")
+		log.WithError(err).Error("Anonymous GET request failed")
 		panic(err)
 	}
 	defer resp.Body.Close()

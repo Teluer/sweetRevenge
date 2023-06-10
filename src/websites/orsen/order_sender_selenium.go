@@ -1,18 +1,18 @@
-package target
+package orsen
 
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"sweetRevenge/src/websites/target/captcha"
+	"sweetRevenge/src/websites/orsen/captcha"
 	"sweetRevenge/src/websites/web"
 )
 
-func (ord *Order) orderItemWithCustomerSelenium(name, phone, itemId, link string) {
+func (ord *OrderSender) orderItemWithCustomerSelenium(name, phone, itemId, link string) {
 	//simpler to do with just tor
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) via Selenium",
 		name, phone, itemId))
 
-	selenium := web.Connect(link, ord.SocksProxy, ord.ThreadId)
+	selenium := web.OpenChromeSession(link, ord.SocksProxy, ord.ThreadId)
 	defer selenium.Close()
 
 	selenium.MoveAround(2)
@@ -31,7 +31,7 @@ func (ord *Order) orderItemWithCustomerSelenium(name, phone, itemId, link string
 	log.Info("Sent order successfully")
 }
 
-func (ord *Order) solveYandexCaptcha(selenium *web.Selenium) {
+func (ord *OrderSender) solveYandexCaptcha(selenium *web.Selenium) {
 	doc := selenium.GetDocument()
 	challenge := doc.Find("#fn_fast_order").Find("div.secret_number").Text()
 	if challenge == "" {

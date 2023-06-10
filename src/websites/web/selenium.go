@@ -18,7 +18,8 @@ type Selenium struct {
 	driver  *selenium.WebDriver
 }
 
-func Connect(url, socksProxy string, routineId int) *Selenium {
+// OpenChromeSession opens a new Chrome instance and navigates to the provided url
+func OpenChromeSession(url, socksProxy string, routineId int) *Selenium {
 	port := 4444 + routineId
 
 	userAgent := util.RandomUserAgent()
@@ -137,8 +138,9 @@ func (s *Selenium) Idle(minSeconds, maxSeconds float64) {
 	time.Sleep(sleepDuration)
 }
 
-// movements may take longer than minDuration
-func (s *Selenium) MoveAround(minDuration time.Duration) {
+// MoveAround imitates a user, performing random mouse movements for some time
+// atLeast - minimal amount of time to move around.
+func (s *Selenium) MoveAround(atLeast time.Duration) {
 	webDriver := *s.driver
 	body, err := webDriver.FindElement(selenium.ByTagName, "body")
 	if err != nil {
@@ -151,7 +153,7 @@ func (s *Selenium) MoveAround(minDuration time.Duration) {
 		return
 	}
 
-	shouldEnd := time.Now().Add(minDuration)
+	shouldEnd := time.Now().Add(atLeast)
 	for time.Now().Before(shouldEnd) {
 		x := rand.Intn(size.Width) - size.Width/2   //left or right movement
 		y := rand.Intn(size.Height) - size.Height/2 //up or down movement
@@ -177,7 +179,7 @@ func (s *Selenium) EnterCaptcha(value string) {
 	}
 }
 
-// this fails with TOR or socks proxy
+// Deprecated: this fails with socks proxy as ReCaptcha detects TOR exit nodes.
 func (s *Selenium) SolveReCaptcha() {
 	webDriver := *s.driver
 
@@ -197,4 +199,6 @@ func (s *Selenium) SolveReCaptcha() {
 
 	button.Click()
 	webDriver.SwitchFrame(nil)
+
+	//the rest of this method was removed as it doesn't apply to the website captcha implementation anymore.
 }

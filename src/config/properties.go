@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Config contains all the properties including embedded property sets.
 type Config struct {
 	TimeZone string `properties:"timezone"`
 
@@ -29,8 +30,8 @@ type OrdersRoutineConfig struct {
 }
 
 type OrdersConfig struct {
+	SeleniumEnabled bool `properties:"selenium.enabled"`
 	//loading string array as string to avoid space trimming by the properties lib
-	SeleniumEnabled  bool     `properties:"selenium.enabled"`
 	PhonePrefixes    string   `properties:"phone.prefixes"`
 	TargetBaselink   string   `properties:"target.base"`
 	TargetOrderLink  string   `properties:"target.order"`

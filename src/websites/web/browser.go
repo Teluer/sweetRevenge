@@ -10,10 +10,10 @@ import (
 )
 
 type AnonymousSession struct {
-	session *TorSession
+	session *SocksConnection
 }
 
-func GetUrlUnsafe(url string) *goquery.Document {
+func GetUnsafe(url string) *goquery.Document {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.WithError(err).Error("Unsafe GET request failed")
@@ -26,7 +26,7 @@ func GetUrlUnsafe(url string) *goquery.Document {
 	return extractDocumentFromResponseBody(body)
 }
 
-func GetRequestUnsafe(req *http.Request) *goquery.Document {
+func RequestUnsafe(req *http.Request) *goquery.Document {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.WithError(err).Error("Unsafe request failed")
@@ -41,16 +41,16 @@ func GetRequestUnsafe(req *http.Request) *goquery.Document {
 
 func OpenAnonymousSession(proxy string) *AnonymousSession {
 	return &AnonymousSession{
-		session: openNewSession(proxy),
+		session: connectToSocksProxy(proxy),
 	}
 }
 
 func (as *AnonymousSession) SendRequest(req *http.Request) (response *http.Response, body []byte) {
-	return as.session.anonymousRequest(req)
+	return as.session.socksRequest(req)
 }
 
 func (as *AnonymousSession) GetUrl(url string) (*http.Response, *goquery.Document) {
-	resp, responseBody := as.session.getAnonymously(url)
+	resp, responseBody := as.session.socksGet(url)
 	return resp, extractDocumentFromResponseBody(responseBody)
 }
 
@@ -61,7 +61,7 @@ func (as *AnonymousSession) GetRequest(req *http.Request) (*http.Response, *goqu
 
 func (as *AnonymousSession) FetchCookies(url string) []*http.Cookie {
 	var resp *http.Response
-	resp, _ = as.session.getAnonymously(url)
+	resp, _ = as.session.socksGet(url)
 	return resp.Cookies()
 }
 

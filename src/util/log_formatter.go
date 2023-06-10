@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// LogFormatter is used to override the default time location in the logger.
 type LogFormatter struct {
 	log.Formatter
 	Loc *time.Location

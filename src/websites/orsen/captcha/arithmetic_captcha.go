@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// SolveArithmeticCaptcha returns answer to a given captcha as string
+// captcha - arithmetic equation with + and - operations and one unknown variable on either side.
 func SolveArithmeticCaptcha(captcha string) (answer string) {
 	//assuming captcha consists of numbers, +, -, =, and ? on either side of the expression
 	sides := strings.Split(captcha, "=")
@@ -35,11 +37,13 @@ func solveExpression(e []string) int {
 	return result
 }
 
+// Is 'e' not a number and not a sign?
 func isVariable(e string) bool {
 	_, err := strconv.Atoi(e)
 	return err != nil && e != "+" && e != "-" && e != "="
 }
 
+// Determine if the equation sum should be negated (is x negative, is x on the right side?)
 func getDiffSign(leftSide, rightSide []string) int {
 	for i, e := range leftSide {
 		if isVariable(e) {

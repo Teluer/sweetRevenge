@@ -1,4 +1,4 @@
-package target
+package orsen
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func Test_createRandomCustomer(t *testing.T) {
 		},
 	}
 
-	ord := Order{OrderCfg: &config.OrdersConfig{}}
+	ord := OrderSender{OrderCfg: &config.OrdersConfig{}}
 
 	ord.OrderCfg.PhonePrefixes = "0;+373 ;+373"
 

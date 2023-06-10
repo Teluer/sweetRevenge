@@ -11,12 +11,19 @@ import (
 	"sweetRevenge/src/rabbitmq"
 	"sweetRevenge/src/util"
 	"sweetRevenge/src/websites"
-	"sweetRevenge/src/websites/target"
+	"sweetRevenge/src/websites/orsen"
 	"sync"
 	"time"
 )
 
-func programLogic(cfg *config.Config, loc *time.Location) {
+func initializeThings(cfg *config.Config) {
+	dao.Dao.OpenDatabaseConnection(cfg.DatabaseDsn)
+	dao.Dao.AutoMigrateAll()
+	rabbitmq.InitializeRabbitMq(cfg.Rabbit)
+	go admin.StartControlPanelServer(&cfg.OrdersRoutineCfg)
+}
+
+func scheduleJobs(cfg *config.Config, loc *time.Location) {
 	log.Info("Bootstrapping goroutines")
 
 	//wait for the updates to complete, then proceed with orders.
@@ -34,8 +41,6 @@ func programLogic(cfg *config.Config, loc *time.Location) {
 	//everything ready, start sending orders
 	go sendOrdersJob(&cfg.OrdersRoutineCfg, loc, cfg.SocksProxyAddress)
 
-	go admin.StartControlPanelServer(&cfg.OrdersRoutineCfg)
-
 	log.Info("Program initialization complete, LET THE FUN BEGIN!")
 }
 
@@ -45,7 +50,7 @@ func manualOrdersJob() {
 		func() {
 			defer util.RecoverAndLog("RabbitMq")
 			order := rabbitmq.ConsumeManualOrder()
-			target.QueueManualOrder(order)
+			orsen.QueueManualOrder(order)
 			log.Info("Manual order is queued and will be executed by Orders routine")
 		}()
 	}
@@ -90,7 +95,7 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 
 	for {
 		concurrencyCh <- struct{}{}
-		log.Info("sendOrdersJob: Order flow triggered")
+		log.Info("sendOrdersJob: OrderSender flow triggered")
 		sleepAtNight(cfg, loc)
 
 		jobStart := time.Now()
@@ -99,7 +104,7 @@ func sendOrdersJob(cfg *config.OrdersRoutineConfig, loc *time.Location, socksPro
 		ordersEnabled := cfg.SendOrdersEnabled
 
 		if readyToGo && ordersEnabled {
-			order := target.Order{
+			order := orsen.OrderSender{
 				OrderCfg:      &cfg.OrdersCfg,
 				SocksProxy:    socksProxy,
 				ConcurrencyCh: concurrencyCh,

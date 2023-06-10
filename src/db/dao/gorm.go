@@ -76,7 +76,7 @@ func (d *GormDao) IsTableEmpty(obj any) bool {
 }
 
 func (d *GormDao) ValidateDataIntegrity() bool {
-	return !(Dao.IsTableEmpty(&dto.FirstName{}) ||
-		Dao.IsTableEmpty(&dto.LastName{}) ||
-		Dao.IsTableEmpty(&dto.Phone{}))
+	return !(d.IsTableEmpty(&dto.FirstName{}) ||
+		d.IsTableEmpty(&dto.LastName{}) ||
+		d.IsTableEmpty(&dto.Phone{}))
 }

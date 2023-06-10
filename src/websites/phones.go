@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// UpdatePhones adds new records to "ladies" DB table. Used to scrape 999.md for phone nubmers.
 func UpdatePhones(baseUrl string, categoryUrls []string, socksProxy string, threadsLimit int) {
 	defer util.RecoverAndLog("UpdatePhones")
 

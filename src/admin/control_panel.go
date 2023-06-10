@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"sweetRevenge/src/config"
+	"sweetRevenge/src/db/dao"
 	"sweetRevenge/src/rabbitmq"
-	"sweetRevenge/src/websites/target"
+	"sweetRevenge/src/websites/orsen"
 	"sync"
 	"time"
 )
@@ -21,7 +22,7 @@ var templ = `<!DOCTYPE html>
     <body>
         <h1>Update Configs</h1>
         <form method="POST" id="ConfForm" action="/conf">
-            <label for="name">Order Max interval in munites:</label>
+            <label for="name">OrderSender Max interval in munites:</label>
             <br>
             <input type="text" id="frequency" name="frequency" value={{.OrdersInterval}}  required>
             <br>
@@ -33,7 +34,7 @@ var templ = `<!DOCTYPE html>
             <label class="response-label" style="color:red;"></label>
         </form>
 
-        <h1>Send Manual Order</h1>
+        <h1>Send Manual OrderSender</h1>
         <form method="POST" id="OrderForm" action="/order">
             <label for="name">Name:</label>
             <br>
@@ -83,18 +84,13 @@ var templ = `<!DOCTYPE html>
     </body>
     </html>`
 
-type formData struct {
-	OrdersInterval float64
-	OrdersEnabled  bool
-}
-
 func StartControlPanelServer(cfg *config.OrdersRoutineConfig) {
 	log.Infof("Starting Control Panel server at: %s", "localhost:8008/admin")
 
 	http.HandleFunc("/admin", controlPanelHandler(cfg)) // each request calls handler
 	http.HandleFunc("/conf", configHandler(cfg))
 	http.HandleFunc("/order", orderHandler)
-	http.HandleFunc("/customer", customerHandler(&cfg.OrdersCfg))
+	http.HandleFunc("/customer", customerHandler(cfg.OrdersCfg.PhonePrefixes))
 
 	log.Error(http.ListenAndServe("0.0.0.0:8008", nil))
 }
@@ -104,18 +100,23 @@ func controlPanelHandler(cfg *config.OrdersRoutineConfig) func(http.ResponseWrit
 		mu.Lock()
 		log.Info("Accessing control panel from: ", r.RemoteAddr)
 
-		data := &formData{
+		data := &struct {
+			OrdersInterval float64
+			OrdersEnabled  bool
+		}{
 			OrdersInterval: float64(cfg.SendOrdersMaxInterval.Nanoseconds()) / float64(time.Minute),
 			OrdersEnabled:  cfg.SendOrdersEnabled,
 		}
 
 		t, err := template.New("form").Parse(templ)
 		if err != nil {
+			log.Error(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		err = t.Execute(w, data)
 		if err != nil {
+			log.Error(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -162,11 +163,9 @@ func orderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func customerHandler(cfg *config.OrdersConfig) func(http.ResponseWriter, *http.Request) {
+func customerHandler(phonePrefixes string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name, phone := (&target.Order{
-			OrderCfg: cfg,
-		}).CreateRandomCustomer()
+		name, phone := orsen.CreateRandomCustomer(dao.Dao, phonePrefixes)
 		w.Write([]byte(name + ", " + phone))
 	}
 }

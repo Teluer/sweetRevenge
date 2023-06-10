@@ -1,4 +1,4 @@
-package target
+package orsen
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ type OrderSuccess struct {
 	Redirect string `json:"redirect_location"`
 }
 
-func (ord *Order) orderItemWithCustomerTor(name, phone, itemId, link string, tor *web.AnonymousSession) {
+func (ord *OrderSender) orderItemWithCustomerHttp(name, phone, itemId, link string, tor *web.AnonymousSession) {
 	log.Info(fmt.Sprintf("Sending order for (%s, %s, %s) with cookies from %s to %s ",
 		name, phone, itemId, link, ord.OrderCfg.TargetOrderLink))
 
@@ -51,7 +51,7 @@ func (ord *Order) orderItemWithCustomerTor(name, phone, itemId, link string, tor
 	log.Info("Sent order successfully")
 }
 
-func (ord *Order) findRandomItem(tor *web.AnonymousSession) (id string, link string) {
+func (ord *OrderSender) findRandomItem(tor *web.AnonymousSession) (id string, link string) {
 	caregoryIndex := rand.Intn(len(ord.OrderCfg.TargetCategories))
 	randomCategory := ord.OrderCfg.TargetCategories[caregoryIndex]
 
@@ -75,7 +75,7 @@ func (ord *Order) findRandomItem(tor *web.AnonymousSession) (id string, link str
 	return id, link
 }
 
-func (ord *Order) prepareOrderRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
+func (ord *OrderSender) prepareOrderRequest(target, name, phone, itemId, referer string, cookies []*http.Cookie) *http.Request {
 	//create request body
 	formData := url.Values{}
 	formData.Set("variant_id", itemId)
@@ -119,7 +119,7 @@ func (ord *Order) prepareOrderRequest(target, name, phone, itemId, referer strin
 	return request
 }
 
-func (ord *Order) prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cookie) *http.Request {
+func (ord *OrderSender) prepareOrderSuccessGetRequest(target, referer string, cookies []*http.Cookie) *http.Request {
 	request, err := http.NewRequest("GET", target, nil)
 	if err != nil {
 		log.WithError(err).Error("Failed to create request for order!")
@@ -148,7 +148,7 @@ func (ord *Order) prepareOrderSuccessGetRequest(target, referer string, cookies 
 	return request
 }
 
-func (ord *Order) prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
+func (ord *OrderSender) prepareConfirmOrderRequest(target string, cookies []*http.Cookie) *http.Request {
 	formData := url.Values{}
 	formData.Set("payment_method_id", "23")
 	formData.Set("checkout", "Применить")
